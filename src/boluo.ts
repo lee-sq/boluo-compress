@@ -14,7 +14,7 @@ export class BoLuo {
   };
 
   /**
-   * 压缩单个Blob/Buffer
+   * 压缩单个Blob/Buffer，返回Buffer
    * @param input - 输入的Blob或Buffer
    * @param options - 压缩选项
    * @returns 压缩后的Buffer
@@ -53,6 +53,45 @@ export class BoLuo {
     // 使用Engine进行压缩
     const engine = new Engine(buffer, mergedOptions.focusAlpha || false);
     return await engine.compress();
+  }
+
+  /**
+   * 压缩单个Blob/Buffer，返回Blob（推荐用于前端）
+   * @param input - 输入的Blob或Buffer
+   * @param options - 压缩选项
+   * @returns 压缩后的Blob
+   */
+  public static async compressToBlob(
+    input: Blob | Buffer,
+    options: CompressionOptions = {}
+  ): Promise<Blob> {
+    const compressedBuffer = await BoLuo.compress(input, options);
+    
+    // 确定MIME类型
+    const checker = Checker.getInstance();
+    let mimeType = 'image/jpeg'; // 默认JPEG
+    
+    try {
+      const ext = await checker.getExtSuffix(compressedBuffer);
+      switch (ext.toLowerCase()) {
+        case '.png':
+          mimeType = 'image/png';
+          break;
+        case '.webp':
+          mimeType = 'image/webp';
+          break;
+        case '.jpg':
+        case '.jpeg':
+        default:
+          mimeType = 'image/jpeg';
+          break;
+      }
+    } catch (error) {
+      // 如果检测失败，使用默认JPEG
+      mimeType = 'image/jpeg';
+    }
+    
+    return new Blob([compressedBuffer], { type: mimeType });
   }
 
   /**
@@ -179,7 +218,7 @@ export class BoLuoBuilder {
   }
 
   /**
-   * 压缩单个输入（仅支持单个输入）
+   * 压缩单个输入，返回Buffer（仅支持单个输入）
    */
   public async compress(): Promise<Buffer> {
     if (this.inputs.length !== 1) {
@@ -190,7 +229,18 @@ export class BoLuoBuilder {
   }
 
   /**
-   * 压缩所有输入
+   * 压缩单个输入，返回Blob（推荐用于前端，仅支持单个输入）
+   */
+  public async compressToBlob(): Promise<Blob> {
+    if (this.inputs.length !== 1) {
+      throw new Error('compressToBlob() method only supports single input. Use compressAllToBlobs() for multiple inputs.');
+    }
+    
+    return await BoLuo.compressToBlob(this.inputs[0], this.options);
+  }
+
+  /**
+   * 压缩所有输入，返回Buffer数组
    */
   public async compressAll(): Promise<Buffer[]> {
     if (this.inputs.length === 0) {
@@ -198,6 +248,48 @@ export class BoLuoBuilder {
     }
     
     return await BoLuo.compressMultiple(this.inputs, this.options);
+  }
+
+  /**
+   * 压缩所有输入，返回Blob数组（推荐用于前端）
+   */
+  public async compressAllToBlobs(): Promise<Blob[]> {
+    if (this.inputs.length === 0) {
+      throw new Error('No inputs loaded. Use load() method first.');
+    }
+    
+    const buffers = await BoLuo.compressMultiple(this.inputs, this.options);
+    const blobs: Blob[] = [];
+    
+    for (const buffer of buffers) {
+      // 确定MIME类型
+      const checker = Checker.getInstance();
+      let mimeType = 'image/jpeg'; // 默认JPEG
+      
+      try {
+        const ext = await checker.getExtSuffix(buffer);
+        switch (ext.toLowerCase()) {
+          case '.png':
+            mimeType = 'image/png';
+            break;
+          case '.webp':
+            mimeType = 'image/webp';
+            break;
+          case '.jpg':
+          case '.jpeg':
+          default:
+            mimeType = 'image/jpeg';
+            break;
+        }
+      } catch (error) {
+        // 如果检测失败，使用默认JPEG
+        mimeType = 'image/jpeg';
+      }
+      
+      blobs.push(new Blob([buffer], { type: mimeType }));
+    }
+    
+    return blobs;
   }
 
   /**

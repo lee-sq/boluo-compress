@@ -1,6 +1,6 @@
 {
   "name": "boluo-image",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "BoLuo - Pure frontend image compression library for browsers, inspired by WeChat Moments compression strategy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

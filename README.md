@@ -62,9 +62,13 @@ yarn add boluo-image
 ```typescript
 import BoLuo from 'boluo-image';
 
-// 压缩单个 Blob/File
+// 压缩单个 Blob/File (返回 Buffer)
 const compressedBuffer = await BoLuo.compress(fileBlob);
 console.log('压缩完成，返回 Buffer');
+
+// 🎯 新增：压缩单个 Blob/File (返回 Blob)
+const compressedBlob = await BoLuo.compressToBlob(fileBlob);
+console.log('压缩完成，返回 Blob，可直接用于下载或预览');
 
 // 压缩多个 Blob/File
 const compressedBuffers = await BoLuo.compressMultiple([blob1, blob2, blob3]);
@@ -86,14 +90,23 @@ const result = await BoLuo.create()
 
 console.log('压缩结果:', result);
 
-// 从 Blob 压缩
+// 从 Blob 压缩 (返回 Buffer)
 const buffer = await BoLuo.create()
   .load(imageBlob)
   .quality(75)
   .compressToBuffer();           // 返回 Buffer
 
-// 转换为新的 Blob
-const compressedBlob = new Blob([buffer], { type: 'image/jpeg' });
+// 🎯 新增：直接返回 Blob，无需手动转换
+const compressedBlob = await BoLuo.create()
+  .load(imageBlob)
+  .quality(75)
+  .compressToBlob();             // 直接返回 Blob
+
+// 🎯 新增：批量压缩返回 Blob 数组
+const compressedBlobs = await BoLuo.create()
+  .load([blob1, blob2, blob3])
+  .quality(80)
+  .compressAllToBlobs();         // 返回 Blob[]
 ```
 
 ### Web 应用中的使用
@@ -116,17 +129,18 @@ const handleFileUpload = async (event: Event) => {
     console.log(`压缩后大小: ${result.compressedSize} bytes`);
     console.log(`压缩比: ${result.compressionRatio.toFixed(2)}%`);
 
-    // 创建压缩后的 Blob
-    const compressedBuffer = await BoLuo.create()
-      .load(file)
-      .quality(80)
-      .compressToBuffer();
+    // 🎯 使用新的 Blob API，更简洁
+    const compressedBlob = await BoLuo.compressToBlob(file, { quality: 80 });
     
-    const compressedBlob = new Blob([compressedBuffer], { type: 'image/jpeg' });
-    
-    // 可以用于上传或显示
+    // 可以直接用于上传或显示
     const formData = new FormData();
     formData.append('image', compressedBlob, 'compressed.jpg');
+    
+    // 或者创建预览URL
+    const previewUrl = URL.createObjectURL(compressedBlob);
+    const img = document.createElement('img');
+    img.src = previewUrl;
+    document.body.appendChild(img);
     
   } catch (error) {
     console.error('压缩失败:', error);
@@ -228,6 +242,7 @@ export default ImageCompressor;
 
 - `BoLuo.create()`: 创建 BoLuoBuilder 实例
 - `BoLuo.compress(blob, options?)`: 压缩单个 Blob/File，返回 Buffer
+- `BoLuo.compressToBlob(blob, options?)`: 压缩单个 Blob/File，返回 Blob ⭐️ **新增**
 - `BoLuo.compressMultiple(blobs, options?)`: 压缩多个 Blob/File，返回 Buffer 数组
 
 ### BoLuoBuilder 类
@@ -245,6 +260,9 @@ export default ImageCompressor;
 
 - `compress()`: 压缩并返回详细结果信息
 - `compressToBuffer()`: 压缩并返回 Buffer
+- `compressToBlob()`: 压缩并返回 Blob ⭐️ **新增**
+- `compressAll()`: 批量压缩并返回 Buffer 数组
+- `compressAllToBlobs()`: 批量压缩并返回 Blob 数组 ⭐️ **新增**
 
 ### 类型定义
 

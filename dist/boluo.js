@@ -9,7 +9,7 @@ const checker_1 = require("./checker");
  */
 class BoLuo {
     /**
-     * 压缩单个Blob/Buffer
+     * 压缩单个Blob/Buffer，返回Buffer
      * @param input - 输入的Blob或Buffer
      * @param options - 压缩选项
      * @returns 压缩后的Buffer
@@ -43,6 +43,39 @@ class BoLuo {
         // 使用Engine进行压缩
         const engine = new engine_1.Engine(buffer, mergedOptions.focusAlpha || false);
         return await engine.compress();
+    }
+    /**
+     * 压缩单个Blob/Buffer，返回Blob（推荐用于前端）
+     * @param input - 输入的Blob或Buffer
+     * @param options - 压缩选项
+     * @returns 压缩后的Blob
+     */
+    static async compressToBlob(input, options = {}) {
+        const compressedBuffer = await BoLuo.compress(input, options);
+        // 确定MIME类型
+        const checker = checker_1.Checker.getInstance();
+        let mimeType = 'image/jpeg'; // 默认JPEG
+        try {
+            const ext = await checker.getExtSuffix(compressedBuffer);
+            switch (ext.toLowerCase()) {
+                case '.png':
+                    mimeType = 'image/png';
+                    break;
+                case '.webp':
+                    mimeType = 'image/webp';
+                    break;
+                case '.jpg':
+                case '.jpeg':
+                default:
+                    mimeType = 'image/jpeg';
+                    break;
+            }
+        }
+        catch (error) {
+            // 如果检测失败，使用默认JPEG
+            mimeType = 'image/jpeg';
+        }
+        return new Blob([compressedBuffer], { type: mimeType });
     }
     /**
      * 压缩多个Blob/Buffer
@@ -166,7 +199,7 @@ class BoLuoBuilder {
         return this;
     }
     /**
-     * 压缩单个输入（仅支持单个输入）
+     * 压缩单个输入，返回Buffer（仅支持单个输入）
      */
     async compress() {
         if (this.inputs.length !== 1) {
@@ -175,13 +208,59 @@ class BoLuoBuilder {
         return await BoLuo.compress(this.inputs[0], this.options);
     }
     /**
-     * 压缩所有输入
+     * 压缩单个输入，返回Blob（推荐用于前端，仅支持单个输入）
+     */
+    async compressToBlob() {
+        if (this.inputs.length !== 1) {
+            throw new Error('compressToBlob() method only supports single input. Use compressAllToBlobs() for multiple inputs.');
+        }
+        return await BoLuo.compressToBlob(this.inputs[0], this.options);
+    }
+    /**
+     * 压缩所有输入，返回Buffer数组
      */
     async compressAll() {
         if (this.inputs.length === 0) {
             throw new Error('No inputs loaded. Use load() method first.');
         }
         return await BoLuo.compressMultiple(this.inputs, this.options);
+    }
+    /**
+     * 压缩所有输入，返回Blob数组（推荐用于前端）
+     */
+    async compressAllToBlobs() {
+        if (this.inputs.length === 0) {
+            throw new Error('No inputs loaded. Use load() method first.');
+        }
+        const buffers = await BoLuo.compressMultiple(this.inputs, this.options);
+        const blobs = [];
+        for (const buffer of buffers) {
+            // 确定MIME类型
+            const checker = checker_1.Checker.getInstance();
+            let mimeType = 'image/jpeg'; // 默认JPEG
+            try {
+                const ext = await checker.getExtSuffix(buffer);
+                switch (ext.toLowerCase()) {
+                    case '.png':
+                        mimeType = 'image/png';
+                        break;
+                    case '.webp':
+                        mimeType = 'image/webp';
+                        break;
+                    case '.jpg':
+                    case '.jpeg':
+                    default:
+                        mimeType = 'image/jpeg';
+                        break;
+                }
+            }
+            catch (error) {
+                // 如果检测失败，使用默认JPEG
+                mimeType = 'image/jpeg';
+            }
+            blobs.push(new Blob([buffer], { type: mimeType }));
+        }
+        return blobs;
     }
     /**
      * 获取第一个输入的图片信息
