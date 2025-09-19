@@ -4,6 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 
+## 🌍 Languages / 语言
+
+- [🇨🇳 中文](#中文版本)
+- [🇺🇸 English](#english-version)
+- [🇯🇵 日本語](#日本語版)
+- [🇰🇷 한국어](#한국어-버전)
+
+---
+
+## 中文版本
+
 > TypeScript 版本的 Luban 图片压缩库，基于微信朋友圈压缩算法
 
 BoLuo 是 [Android Luban](https://github.com/Curzibn/Luban) 压缩算法的 TypeScript 实现版本，专为 Node.js 环境设计。Luban 算法通过逆向分析微信朋友圈的图片压缩策略而来，能够在保持视觉质量的同时显著减小图片文件大小。<mcreference link="https://github.com/Curzibn/Luban" index="0">0</mcreference>
@@ -37,13 +48,13 @@ Luban（鲁班）算法是通过在微信朋友圈发送近100张不同分辨率
 ## 📦 安装
 
 ```bash
-npm install boluo
+npm install boluo-image
 ```
 
 或使用 yarn:
 
 ```bash
-yarn add boluo
+yarn add boluo-image
 ```
 
 ## 🚀 快速开始
@@ -51,7 +62,7 @@ yarn add boluo
 ### 基础用法
 
 ```typescript
-import BoLuo from 'boluo';
+import BoLuo from 'boluo-image';
 
 // 压缩单个文件
 const result = await BoLuo.compressFile('./input/image.jpg');
@@ -68,7 +79,7 @@ const results = await BoLuo.compressFiles([
 ### 使用构建器模式
 
 ```typescript
-import { BoLuo } from 'boluo';
+import { BoLuo } from 'boluo-image';
 
 const result = await BoLuo.create()
   .load('./input/image.jpg')
@@ -84,7 +95,7 @@ console.log('压缩结果:', result);
 ### 批量压缩与监听
 
 ```typescript
-import { BoLuo } from 'boluo';
+import { BoLuo } from 'boluo-image';
 
 await BoLuo.create()
   .load(['./images/*.jpg', './images/*.png'])
@@ -102,7 +113,7 @@ await BoLuo.create()
 ### 高级用法 - 自定义重命名
 
 ```typescript
-import { BoLuo } from 'boluo';
+import { BoLuo } from 'boluo-image';
 
 const result = await BoLuo.create()
   .load('./input/photo.jpg')
@@ -280,3 +291,475 @@ app.post('/api/upload-and-compress', upload.single('image'), async (req, res) =>
 ---
 
 如果这个项目对你有帮助，请给它一个 ⭐️！
+
+---
+
+## English Version
+
+> TypeScript implementation of Luban image compression library, based on WeChat Moments compression algorithm
+
+BoLuo is a TypeScript implementation of the [Android Luban](https://github.com/Curzibn/Luban) compression algorithm, designed specifically for Node.js environments. The Luban algorithm was reverse-engineered by analyzing WeChat Moments' image compression strategy, enabling significant file size reduction while maintaining visual quality.
+
+## 🎯 About Luban Algorithm
+
+The Luban algorithm was reverse-engineered by sending nearly 100 images of different resolutions through WeChat Moments and comparing the original images with WeChat's compressed versions. Although it's reverse-engineered, the results are very close to WeChat Moments' compression effects.
+
+### Compression Performance Comparison
+
+| Content | Original | Luban Compressed | WeChat Compressed |
+|---------|----------|------------------|-------------------|
+| Screenshot 720P | 720×1280, 390KB | 720×1280, 87KB | 720×1280, 56KB |
+| Screenshot 1080P | 1080×1920, 2.21MB | 1080×1920, 104KB | 1080×1920, 112KB |
+| Photo 13M(4:3) | 3096×4128, 3.12MB | 1548×2064, 141KB | 1548×2064, 147KB |
+| Photo 9.6M(16:9) | 4128×2322, 4.64MB | 1032×581, 97KB | 1032×581, 74KB |
+
+*Data source: Android Luban project test results*
+
+## ✨ Features
+
+- 🚀 **WeChat-level compression algorithm** - Based on reverse analysis of WeChat Moments compression strategy
+- 📦 **Native TypeScript support** - Complete type definitions for excellent development experience
+- 🔧 **High-performance processing** - Based on Sharp engine for fast image processing
+- 🎯 **Smart compression strategy** - Automatically calculates optimal compression parameters, balancing file size and image quality
+- 📁 **Batch processing support** - Supports single file and batch file compression
+- 🎨 **Transparency preservation** - Optional preservation of PNG transparency channels
+- 📊 **Detailed compression statistics** - Provides detailed comparison data before and after compression
+- 🔍 **Flexible filtering mechanism** - Supports custom file filtering and renaming rules
+
+## 📦 Installation
+
+```bash
+npm install boluo-image
+```
+
+Or using yarn:
+
+```bash
+yarn add boluo-image
+```
+
+## 🚀 Quick Start
+
+### Basic Usage
+
+```typescript
+import BoLuo from 'boluo-image';
+
+// Compress a single file
+const result = await BoLuo.compressFile('./input/image.jpg');
+console.log(`Compression completed: ${result.originalSize} -> ${result.compressedSize} bytes`);
+console.log(`Compression ratio: ${result.compressionRatio.toFixed(2)}%`);
+
+// Compress multiple files
+const results = await BoLuo.compressFiles([
+  './input/image1.jpg',
+  './input/image2.png'
+]);
+```
+
+### Using Builder Pattern
+
+```typescript
+import { BoLuo } from 'boluo-image';
+
+const result = await BoLuo.create()
+  .load('./input/image.jpg')
+  .quality(80)                    // Set compression quality (0-100)
+  .ignoreBy(100)                  // Don't compress files smaller than 100KB
+  .setTargetDir('./output')       // Set output directory
+  .setFocusAlpha(true)           // Preserve transparency channel
+  .get();
+
+console.log('Compression result:', result);
+```
+
+### Batch Compression with Listeners
+
+```typescript
+import { BoLuo } from 'boluo-image';
+
+await BoLuo.create()
+  .load(['./images/*.jpg', './images/*.png'])
+  .quality(75)
+  .setTargetDir('./compressed')
+  .filter(filePath => !filePath.includes('thumbnail')) // Filter files
+  .setCompressListener({
+    onStart: () => console.log('Starting compression...'),
+    onSuccess: (outputPath) => console.log(`Compression successful: ${outputPath}`),
+    onError: (error) => console.error('Compression failed:', error)
+  })
+  .launch();
+```
+
+## 📖 API Documentation
+
+### BoLuo Class
+
+#### Static Methods
+
+- `BoLuo.create()`: Create BoLuoBuilder instance
+- `BoLuo.compressFile(filePath, options?)`: Compress single file
+- `BoLuo.compressFiles(filePaths, options?)`: Compress multiple files
+
+### BoLuoBuilder Class
+
+#### Configuration Methods
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `load(input)` | `string \| string[] \| Buffer` | Load file path, path array, or Buffer |
+| `quality(quality)` | `number (0-100)` | Set compression quality, default 60 |
+| `ignoreBy(size)` | `number` | Set minimum compression threshold (KB), default 100 |
+| `setFocusAlpha(focusAlpha)` | `boolean` | Whether to preserve transparency channel, default false |
+| `setTargetDir(targetDir)` | `string` | Set output directory, default './compressed' |
+| `filter(filterFn)` | `(filePath: string) => boolean` | Set file filter |
+| `setRenameListener(renameFn)` | `(filePath: string) => string` | Set rename callback |
+| `setCompressListener(listener)` | `CompressionListener` | Set compression listener |
+
+#### Execution Methods
+
+- `get()`: Compress and return single result
+- `getAll()`: Compress and return all results
+- `launch()`: Execute compression (no return value)
+
+### Type Definitions
+
+```typescript
+interface CompressionOptions {
+  quality?: number;           // Compression quality (0-100)
+  ignoreBy?: number;         // Minimum compression threshold (KB)
+  focusAlpha?: boolean;      // Whether to preserve transparency channel
+  targetDir?: string;        // Output directory
+  renameListener?: (filePath: string) => string;
+  filter?: (filePath: string) => boolean;
+}
+
+interface CompressionResult {
+  originalPath: string;      // Original file path
+  outputPath: string;        // Output file path
+  originalSize: number;      // Original file size (bytes)
+  compressedSize: number;    // Compressed file size (bytes)
+  compressionRatio: number;  // Compression ratio (0-100)
+  width: number;             // Image width
+  height: number;            // Image height
+}
+
+interface CompressionListener {
+  onStart?: () => void;                    // Compression start
+  onSuccess?: (outputPath: string) => void; // Compression success
+  onError?: (error: Error) => void;        // Compression failure
+}
+```
+
+## 🔧 Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `quality` | number | 60 | Compression quality, range 0-100, higher values mean better quality |
+| `ignoreBy` | number | 100 | Minimum compression threshold (KB), files smaller than this won't be compressed |
+| `focusAlpha` | boolean | false | Whether to preserve PNG transparency channels |
+| `targetDir` | string | './compressed' | Output directory path for compressed images |
+| `filter` | function | Exclude GIF | File filter function, files returning true will be compressed |
+
+## 🎯 Use Cases
+
+- **Web Backend Services** - Process user-uploaded images, reduce storage space and transfer time
+- **Content Management Systems** - Automatically compress uploaded image resources
+- **Image Processing Services** - Provide image compression API services
+- **Batch Image Processing** - Batch compress large amounts of historical images
+- **Build Tool Integration** - Automatically optimize image resources during project builds
+- **Mobile Backend** - Provide suitable image compression services for mobile applications
+
+## 🤝 Contributing
+
+Issues and Pull Requests are welcome!
+
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Thanks to [Curzibn/Luban](https://github.com/Curzibn/Luban) for providing the original Android compression algorithm
+- Thanks to [Sharp](https://sharp.pixelplumbing.com/) for providing powerful image processing capabilities
+- Thanks to the WeChat team for their excellent compression algorithm design
+
+## 🔗 Related Links
+
+- [Original Android Luban](https://github.com/Curzibn/Luban) - The original Android image compression library
+- [Sharp Documentation](https://sharp.pixelplumbing.com/) - Underlying image processing engine
+- [WeChat Moments Image Compression Algorithm Analysis](https://github.com/Curzibn/Luban#项目描述) - Algorithm principle explanation
+
+---
+
+If this project helps you, please give it a ⭐️!
+
+---
+
+## 日本語版
+
+> WeChat モーメンツ圧縮アルゴリズムに基づく Luban 画像圧縮ライブラリの TypeScript 版
+
+BoLuo は [Android Luban](https://github.com/Curzibn/Luban) 圧縮アルゴリズムの TypeScript 実装版で、Node.js 環境専用に設計されています。Luban アルゴリズムは WeChat モーメンツの画像圧縮戦略をリバースエンジニアリングして開発され、視覚的品質を保ちながら画像ファイルサイズを大幅に削減できます。
+
+## 🎯 Luban アルゴリズムについて
+
+Luban アルゴリズムは、WeChat モーメンツに約100枚の異なる解像度の画像を送信し、元画像と WeChat 圧縮後の画像を比較してリバースエンジニアリングで算出された圧縮アルゴリズムです。リバースエンジニアリングですが、効果は WeChat モーメンツ圧縮後の効果に非常に近いです。
+
+### 圧縮効果比較
+
+| 内容 | 元画像 | Luban 圧縮 | WeChat 圧縮 |
+|------|--------|------------|-------------|
+| スクリーンショット 720P | 720×1280, 390KB | 720×1280, 87KB | 720×1280, 56KB |
+| スクリーンショット 1080P | 1080×1920, 2.21MB | 1080×1920, 104KB | 1080×1920, 112KB |
+| 写真 13M(4:3) | 3096×4128, 3.12MB | 1548×2064, 141KB | 1548×2064, 147KB |
+| 写真 9.6M(16:9) | 4128×2322, 4.64MB | 1032×581, 97KB | 1032×581, 74KB |
+
+*データソース：Android Luban プロジェクトテスト結果*
+
+## ✨ 特徴
+
+- 🚀 **WeChat レベル圧縮アルゴリズム** - WeChat モーメンツ圧縮戦略のリバースエンジニアリングに基づく
+- 📦 **TypeScript ネイティブサポート** - 完全な型定義で優れた開発体験
+- 🔧 **高性能処理** - Sharp エンジンベースで高速画像処理
+- 🎯 **スマート圧縮戦略** - 最適な圧縮パラメータを自動計算、ファイルサイズと画質のバランス
+- 📁 **バッチ処理サポート** - 単一ファイルとバッチファイル圧縮をサポート
+- 🎨 **透明チャンネル保持** - PNG 画像の透明チャンネルを選択的に保持
+- 📊 **詳細圧縮統計** - 圧縮前後の詳細比較データを提供
+- 🔍 **柔軟なフィルタリング機構** - カスタムファイルフィルタリングとリネーミングルールをサポート
+
+## 📦 インストール
+
+```bash
+npm install boluo-image
+```
+
+または yarn を使用：
+
+```bash
+yarn add boluo-image
+```
+
+## 🚀 クイックスタート
+
+### 基本的な使用法
+
+```typescript
+import BoLuo from 'boluo-image';
+
+// 単一ファイルの圧縮
+const result = await BoLuo.compressFile('./input/image.jpg');
+console.log(`圧縮完了: ${result.originalSize} -> ${result.compressedSize} bytes`);
+console.log(`圧縮率: ${result.compressionRatio.toFixed(2)}%`);
+
+// 複数ファイルの圧縮
+const results = await BoLuo.compressFiles([
+  './input/image1.jpg',
+  './input/image2.png'
+]);
+```
+
+### ビルダーパターンの使用
+
+```typescript
+import { BoLuo } from 'boluo-image';
+
+const result = await BoLuo.create()
+  .load('./input/image.jpg')
+  .quality(80)                    // 圧縮品質を設定 (0-100)
+  .ignoreBy(100)                  // 100KB未満のファイルは圧縮しない
+  .setTargetDir('./output')       // 出力ディレクトリを設定
+  .setFocusAlpha(true)           // 透明チャンネルを保持
+  .get();
+
+console.log('圧縮結果:', result);
+```
+
+## 📖 API ドキュメント
+
+### BoLuo クラス
+
+#### 静的メソッド
+
+- `BoLuo.create()`: BoLuoBuilder インスタンスを作成
+- `BoLuo.compressFile(filePath, options?)`: 単一ファイルを圧縮
+- `BoLuo.compressFiles(filePaths, options?)`: 複数ファイルを圧縮
+
+### 設定オプション
+
+| オプション | 型 | デフォルト | 説明 |
+|-----------|---|-----------|------|
+| `quality` | number | 60 | 圧縮品質、範囲 0-100、値が高いほど品質が良い |
+| `ignoreBy` | number | 100 | 最小圧縮閾値(KB)、この値未満のファイルは圧縮されない |
+| `focusAlpha` | boolean | false | PNG 画像の透明チャンネルを保持するかどうか |
+| `targetDir` | string | './compressed' | 圧縮後画像の出力ディレクトリパス |
+
+## 🎯 使用ケース
+
+- **Web バックエンドサービス** - ユーザーアップロード画像の処理、ストレージ容量と転送時間の削減
+- **コンテンツ管理システム** - アップロード画像リソースの自動圧縮
+- **画像処理サービス** - 画像圧縮 API サービスの提供
+- **バッチ画像処理** - 大量の履歴画像のバッチ圧縮
+- **ビルドツール統合** - プロジェクトビルド過程での画像リソース自動最適化
+
+## 🤝 貢献
+
+Issue と Pull Request を歓迎します！
+
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/AmazingFeature`)
+3. 変更をコミット (`git commit -m 'Add some AmazingFeature'`)
+4. ブランチにプッシュ (`git push origin feature/AmazingFeature`)
+5. Pull Request を開く
+
+## 📄 ライセンス
+
+このプロジェクトは MIT ライセンスの下でライセンスされています - 詳細は [LICENSE](LICENSE) ファイルをご覧ください。
+
+## 🙏 謝辞
+
+- 元の Android 圧縮アルゴリズムを提供してくれた [Curzibn/Luban](https://github.com/Curzibn/Luban) に感謝
+- 強力な画像処理機能を提供してくれた [Sharp](https://sharp.pixelplumbing.com/) に感謝
+- 優秀な圧縮アルゴリズム設計をした WeChat チームに感謝
+
+---
+
+このプロジェクトがお役に立てば、⭐️ をお願いします！
+
+---
+
+## 한국어 버전
+
+> WeChat 모멘트 압축 알고리즘 기반 Luban 이미지 압축 라이브러리의 TypeScript 버전
+
+BoLuo는 [Android Luban](https://github.com/Curzibn/Luban) 압축 알고리즘의 TypeScript 구현 버전으로, Node.js 환경을 위해 특별히 설계되었습니다. Luban 알고리즘은 WeChat 모멘트의 이미지 압축 전략을 역공학하여 개발되었으며, 시각적 품질을 유지하면서 이미지 파일 크기를 크게 줄일 수 있습니다.
+
+## 🎯 Luban 알고리즘에 대해
+
+Luban 알고리즘은 WeChat 모멘트에 약 100장의 서로 다른 해상도 이미지를 전송하고, 원본 이미지와 WeChat 압축 후 이미지를 비교하여 역공학으로 산출된 압축 알고리즘입니다. 역공학이지만 효과는 WeChat 모멘트 압축 후 효과와 매우 유사합니다.
+
+### 압축 효과 비교
+
+| 내용 | 원본 이미지 | Luban 압축 | WeChat 압축 |
+|------|------------|------------|-------------|
+| 스크린샷 720P | 720×1280, 390KB | 720×1280, 87KB | 720×1280, 56KB |
+| 스크린샷 1080P | 1080×1920, 2.21MB | 1080×1920, 104KB | 1080×1920, 112KB |
+| 사진 13M(4:3) | 3096×4128, 3.12MB | 1548×2064, 141KB | 1548×2064, 147KB |
+| 사진 9.6M(16:9) | 4128×2322, 4.64MB | 1032×581, 97KB | 1032×581, 74KB |
+
+*데이터 출처: Android Luban 프로젝트 테스트 결과*
+
+## ✨ 특징
+
+- 🚀 **WeChat 수준 압축 알고리즘** - WeChat 모멘트 압축 전략의 역공학 분석 기반
+- 📦 **TypeScript 네이티브 지원** - 완전한 타입 정의로 우수한 개발 경험
+- 🔧 **고성능 처리** - Sharp 엔진 기반으로 빠른 이미지 처리
+- 🎯 **스마트 압축 전략** - 최적의 압축 매개변수 자동 계산, 파일 크기와 이미지 품질의 균형
+- 📁 **배치 처리 지원** - 단일 파일 및 배치 파일 압축 지원
+- 🎨 **투명도 채널 유지** - PNG 이미지의 투명도 채널 선택적 유지
+- 📊 **상세 압축 통계** - 압축 전후의 상세 비교 데이터 제공
+- 🔍 **유연한 필터링 메커니즘** - 사용자 정의 파일 필터링 및 이름 변경 규칙 지원
+
+## 📦 설치
+
+```bash
+npm install boluo-image
+```
+
+또는 yarn 사용:
+
+```bash
+yarn add boluo-image
+```
+
+## 🚀 빠른 시작
+
+### 기본 사용법
+
+```typescript
+import BoLuo from 'boluo-image';
+
+// 단일 파일 압축
+const result = await BoLuo.compressFile('./input/image.jpg');
+console.log(`압축 완료: ${result.originalSize} -> ${result.compressedSize} bytes`);
+console.log(`압축률: ${result.compressionRatio.toFixed(2)}%`);
+
+// 여러 파일 압축
+const results = await BoLuo.compressFiles([
+  './input/image1.jpg',
+  './input/image2.png'
+]);
+```
+
+### 빌더 패턴 사용
+
+```typescript
+import { BoLuo } from 'boluo-image';
+
+const result = await BoLuo.create()
+  .load('./input/image.jpg')
+  .quality(80)                    // 압축 품질 설정 (0-100)
+  .ignoreBy(100)                  // 100KB 미만 파일은 압축하지 않음
+  .setTargetDir('./output')       // 출력 디렉토리 설정
+  .setFocusAlpha(true)           // 투명도 채널 유지
+  .get();
+
+console.log('압축 결과:', result);
+```
+
+## 📖 API 문서
+
+### BoLuo 클래스
+
+#### 정적 메서드
+
+- `BoLuo.create()`: BoLuoBuilder 인스턴스 생성
+- `BoLuo.compressFile(filePath, options?)`: 단일 파일 압축
+- `BoLuo.compressFiles(filePaths, options?)`: 여러 파일 압축
+
+### 설정 옵션
+
+| 옵션 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `quality` | number | 60 | 압축 품질, 범위 0-100, 값이 높을수록 품질이 좋음 |
+| `ignoreBy` | number | 100 | 최소 압축 임계값(KB), 이 값 미만의 파일은 압축되지 않음 |
+| `focusAlpha` | boolean | false | PNG 이미지의 투명도 채널 유지 여부 |
+| `targetDir` | string | './compressed' | 압축된 이미지의 출력 디렉토리 경로 |
+
+## 🎯 사용 사례
+
+- **웹 백엔드 서비스** - 사용자 업로드 이미지 처리, 저장 공간 및 전송 시간 단축
+- **콘텐츠 관리 시스템** - 업로드된 이미지 리소스 자동 압축
+- **이미지 처리 서비스** - 이미지 압축 API 서비스 제공
+- **배치 이미지 처리** - 대량의 기존 이미지 배치 압축
+- **빌드 도구 통합** - 프로젝트 빌드 과정에서 이미지 리소스 자동 최적화
+
+## 🤝 기여
+
+Issue와 Pull Request를 환영합니다!
+
+1. 이 저장소를 포크
+2. 기능 브랜치 생성 (`git checkout -b feature/AmazingFeature`)
+3. 변경 사항 커밋 (`git commit -m 'Add some AmazingFeature'`)
+4. 브랜치에 푸시 (`git push origin feature/AmazingFeature`)
+5. Pull Request 열기
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 라이선스가 부여됩니다 - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+## 🙏 감사의 말
+
+- 원본 Android 압축 알고리즘을 제공해 준 [Curzibn/Luban](https://github.com/Curzibn/Luban)에 감사
+- 강력한 이미지 처리 기능을 제공해 준 [Sharp](https://sharp.pixelplumbing.com/)에 감사
+- 우수한 압축 알고리즘 설계를 한 WeChat 팀에 감사
+
+---
+
+이 프로젝트가 도움이 되셨다면 ⭐️를 부탁드립니다!

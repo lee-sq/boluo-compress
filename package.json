@@ -1,7 +1,7 @@
 {
-  "name": "luban-ts",
+  "name": "boluo-image",
   "version": "1.0.0",
-  "description": "TypeScript implementation of Luban image compression library, inspired by WeChat Moments compression strategy",
+  "description": "BoLuo - TypeScript implementation of image compression library, inspired by WeChat Moments compression strategy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -14,6 +14,7 @@
   "keywords": [
     "image",
     "compression",
+    "boluo",
     "luban",
     "typescript",
     "wechat",

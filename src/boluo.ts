@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { Engine } from './engine';
 import { Checker } from './checker';
-import { FileInputStreamProvider, BufferInputStreamProvider } from './input-stream-provider';
+import { FileInputStreamProvider } from './input-stream-provider';
 import { 
   CompressionOptions, 
   CompressionListener, 

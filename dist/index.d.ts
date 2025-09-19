@@ -4,7 +4,7 @@
  * 主要导出模块
  */
 export { BoLuo, BoLuoBuilder } from './boluo';
-export { CompressionOptions, CompressionListener, CompressionResult, ImageInfo } from './types';
+export type { CompressionOptions, CompressionListener, CompressionResult, ImageInfo } from './types';
 export { Checker } from './checker';
 export { Engine } from './engine';
 export { FileInputStreamProvider, BufferInputStreamProvider } from './input-stream-provider';

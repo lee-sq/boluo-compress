@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as FileType from 'file-type';
-import { ImageInfo } from './types';
 
 /**
  * 图片检测器，用于检测图片格式、EXIF信息等
