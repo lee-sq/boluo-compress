@@ -1,112 +1,147 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BoLuoBuilder = exports.BoLuo = void 0;
-const path = __importStar(require("path"));
-const fs = __importStar(require("fs"));
-const crypto = __importStar(require("crypto"));
 const engine_1 = require("./engine");
 const checker_1 = require("./checker");
-const input_stream_provider_1 = require("./input-stream-provider");
 /**
- * BoLuo图片压缩库主类
+ * 前端图片压缩库 - BoLuo
+ * 专为浏览器环境设计，只处理Blob/Buffer对象
  */
 class BoLuo {
     /**
-     * 创建BoLuo实例
+     * 压缩单个Blob/Buffer
+     * @param input - 输入的Blob或Buffer
+     * @param options - 压缩选项
+     * @returns 压缩后的Buffer
+     */
+    static async compress(input, options = {}) {
+        const mergedOptions = { ...BoLuo.defaultOptions, ...options };
+        // 将Blob转换为Buffer
+        let buffer;
+        if (input instanceof Blob) {
+            const arrayBuffer = await input.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+        }
+        else {
+            buffer = input;
+        }
+        // 检查是否为支持的图片格式
+        const checker = checker_1.Checker.getInstance();
+        try {
+            const ext = await checker.getExtSuffix(buffer);
+            if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext.toLowerCase())) {
+                throw new Error('Unsupported image format. Only JPG, PNG, and WebP are supported.');
+            }
+        }
+        catch (error) {
+            throw new Error('Invalid image data');
+        }
+        // 检查文件大小是否需要压缩
+        if (buffer.length <= mergedOptions.ignoreBy * 1024) { // 转换为字节
+            return buffer; // 返回原始buffer
+        }
+        // 使用Engine进行压缩
+        const engine = new engine_1.Engine(buffer, mergedOptions.focusAlpha || false);
+        return await engine.compress();
+    }
+    /**
+     * 压缩多个Blob/Buffer
+     * @param inputs - 输入的Blob或Buffer数组
+     * @param options - 压缩选项
+     * @returns 压缩后的Buffer数组
+     */
+    static async compressMultiple(inputs, options = {}) {
+        const results = [];
+        for (const input of inputs) {
+            try {
+                const compressed = await BoLuo.compress(input, options);
+                results.push(compressed);
+            }
+            catch (error) {
+                console.warn('Failed to compress one image:', error);
+                // 压缩失败时，返回原始数据
+                if (input instanceof Blob) {
+                    const arrayBuffer = await input.arrayBuffer();
+                    results.push(Buffer.from(arrayBuffer));
+                }
+                else {
+                    results.push(input);
+                }
+            }
+        }
+        return results;
+    }
+    /**
+     * 获取图片信息
+     * @param input - 输入的Blob或Buffer
+     * @returns 图片信息
+     */
+    static async getImageInfo(input) {
+        let buffer;
+        if (input instanceof Blob) {
+            const arrayBuffer = await input.arrayBuffer();
+            buffer = Buffer.from(arrayBuffer);
+        }
+        else {
+            buffer = input;
+        }
+        const engine = new engine_1.Engine(buffer);
+        return await engine.getOriginalInfo();
+    }
+    /**
+     * 检查是否为支持的图片格式
+     * @param input - 输入的Blob或Buffer
+     * @returns 是否为支持的格式
+     */
+    static async isValidImage(input) {
+        try {
+            let buffer;
+            if (input instanceof Blob) {
+                const arrayBuffer = await input.arrayBuffer();
+                buffer = Buffer.from(arrayBuffer);
+            }
+            else {
+                buffer = input;
+            }
+            const checker = checker_1.Checker.getInstance();
+            const ext = await checker.getExtSuffix(buffer);
+            return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext.toLowerCase());
+        }
+        catch {
+            return false;
+        }
+    }
+    /**
+     * 创建Builder实例
      */
     static create() {
         return new BoLuoBuilder();
-    }
-    /**
-     * 压缩单个文件
-     */
-    static async compressFile(filePath, options = {}) {
-        const builder = new BoLuoBuilder();
-        return builder.load(filePath).setOptions(options).get();
-    }
-    /**
-     * 压缩多个文件
-     */
-    static async compressFiles(filePaths, options = {}) {
-        const builder = new BoLuoBuilder();
-        return builder.load(filePaths).setOptions(options).getAll();
     }
 }
 exports.BoLuo = BoLuo;
 BoLuo.defaultOptions = {
     quality: 60,
-    ignoreBy: 100,
-    focusAlpha: false,
-    targetDir: './compressed',
-    filter: (filePath) => {
-        return !(filePath.toLowerCase().endsWith('.gif'));
-    }
+    ignoreBy: 100, // 100KB以下不压缩
+    focusAlpha: false
 };
 /**
- * BoLuo构建器类
+ * BoLuo Builder类，提供链式调用API
  */
 class BoLuoBuilder {
     constructor() {
-        this.inputPaths = [];
+        this.inputs = [];
         this.options = { ...BoLuo['defaultOptions'] };
-        this.checker = checker_1.Checker.getInstance();
     }
     /**
-     * 加载要压缩的文件
+     * 加载输入数据
      */
     load(input) {
-        if (typeof input === 'string') {
-            this.inputPaths = [input];
-        }
-        else if (Array.isArray(input)) {
-            this.inputPaths = input;
+        if (Array.isArray(input)) {
+            this.inputs = [...input];
         }
         else {
-            // Buffer类型，创建临时文件路径
-            const tempPath = this.createTempPath();
-            fs.writeFileSync(tempPath, input);
-            this.inputPaths = [tempPath];
+            this.inputs = [input];
         }
-        return this;
-    }
-    /**
-     * 设置压缩选项
-     */
-    setOptions(options) {
-        this.options = { ...this.options, ...options };
         return this;
     }
     /**
@@ -117,10 +152,10 @@ class BoLuoBuilder {
         return this;
     }
     /**
-     * 设置最小压缩阈值
+     * 设置最小压缩阈值（KB）
      */
-    ignoreBy(size) {
-        this.options.ignoreBy = size;
+    ignoreBy(sizeKB) {
+        this.options.ignoreBy = sizeKB;
         return this;
     }
     /**
@@ -131,156 +166,31 @@ class BoLuoBuilder {
         return this;
     }
     /**
-     * 设置输出目录
+     * 压缩单个输入（仅支持单个输入）
      */
-    setTargetDir(targetDir) {
-        this.options.targetDir = targetDir;
-        return this;
+    async compress() {
+        if (this.inputs.length !== 1) {
+            throw new Error('compress() method only supports single input. Use compressAll() for multiple inputs.');
+        }
+        return await BoLuo.compress(this.inputs[0], this.options);
     }
     /**
-     * 设置过滤器
+     * 压缩所有输入
      */
-    filter(filter) {
-        this.options.filter = filter;
-        return this;
+    async compressAll() {
+        if (this.inputs.length === 0) {
+            throw new Error('No inputs loaded. Use load() method first.');
+        }
+        return await BoLuo.compressMultiple(this.inputs, this.options);
     }
     /**
-     * 设置重命名监听器
+     * 获取第一个输入的图片信息
      */
-    setRenameListener(renameListener) {
-        this.options.renameListener = renameListener;
-        return this;
-    }
-    /**
-     * 设置压缩监听器
-     */
-    setCompressListener(listener) {
-        this.listener = listener;
-        return this;
-    }
-    /**
-     * 异步启动压缩
-     */
-    async launch() {
-        try {
-            this.listener?.onStart?.();
-            for (const filePath of this.inputPaths) {
-                const result = await this.compressFile(filePath);
-                this.listener?.onSuccess?.(result.outputPath);
-            }
+    async getImageInfo() {
+        if (this.inputs.length === 0) {
+            throw new Error('No inputs loaded. Use load() method first.');
         }
-        catch (error) {
-            this.listener?.onError?.(error);
-        }
-    }
-    /**
-     * 同步获取压缩结果（单个文件）
-     */
-    async get() {
-        if (this.inputPaths.length === 0) {
-            throw new Error('No input files specified');
-        }
-        return this.compressFile(this.inputPaths[0]);
-    }
-    /**
-     * 同步获取压缩结果（多个文件）
-     */
-    async getAll() {
-        const results = [];
-        for (const filePath of this.inputPaths) {
-            const result = await this.compressFile(filePath);
-            results.push(result);
-        }
-        return results;
-    }
-    /**
-     * 压缩单个文件的内部方法
-     */
-    async compressFile(filePath) {
-        // 检查文件是否存在
-        if (!fs.existsSync(filePath)) {
-            throw new Error(`File not found: ${filePath}`);
-        }
-        // 获取原始文件信息
-        const originalStats = fs.statSync(filePath);
-        const originalSize = originalStats.size;
-        // 应用过滤器
-        if (this.options.filter && !this.options.filter(filePath)) {
-            throw new Error(`File filtered out: ${filePath}`);
-        }
-        // 检查是否需要压缩
-        if (!this.checker.needCompress(this.options.ignoreBy || 0, filePath)) {
-            // 不需要压缩，直接返回原文件信息
-            const buffer = fs.readFileSync(filePath);
-            const sharp = await Promise.resolve().then(() => __importStar(require('sharp')));
-            const metadata = await sharp.default(buffer).metadata();
-            return {
-                originalPath: filePath,
-                outputPath: filePath,
-                originalSize: originalSize,
-                compressedSize: originalSize,
-                compressionRatio: 1,
-                width: metadata.width || 0,
-                height: metadata.height || 0
-            };
-        }
-        // 读取文件内容以检测格式
-        const buffer = fs.readFileSync(filePath);
-        const detectedExt = await this.checker.getExtSuffix(buffer);
-        // 生成输出文件路径（使用检测到的扩展名）
-        const outputPath = this.generateOutputPath(filePath, detectedExt);
-        // 创建输入流提供者
-        const inputProvider = new input_stream_provider_1.FileInputStreamProvider(filePath);
-        // 创建压缩引擎并执行压缩
-        const engine = new engine_1.Engine(inputProvider, outputPath, this.options.focusAlpha || false);
-        const compressedPath = await engine.compress();
-        // 获取压缩后的文件信息
-        const compressedInfo = await engine.getCompressedInfo();
-        const compressedStats = fs.statSync(compressedPath);
-        return {
-            originalPath: filePath,
-            outputPath: compressedPath,
-            originalSize: originalSize,
-            compressedSize: compressedStats.size,
-            compressionRatio: compressedStats.size / originalSize,
-            width: compressedInfo.width,
-            height: compressedInfo.height
-        };
-    }
-    /**
-     * 生成输出文件路径
-     */
-    generateOutputPath(filePath, detectedExt) {
-        const targetDir = this.options.targetDir || './compressed';
-        // 确保目标目录存在
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-        }
-        let fileName = path.basename(filePath);
-        // 应用重命名监听器
-        if (this.options.renameListener) {
-            const newName = this.options.renameListener(filePath);
-            // 使用检测到的扩展名，如果没有则使用原始扩展名
-            const ext = detectedExt || path.extname(filePath);
-            fileName = newName + ext;
-        }
-        else if (detectedExt) {
-            // 如果检测到的扩展名与原始不同，则更新文件名
-            const baseName = path.basename(filePath, path.extname(filePath));
-            fileName = baseName + detectedExt;
-        }
-        return path.join(targetDir, fileName);
-    }
-    /**
-     * 创建临时文件路径
-     */
-    createTempPath() {
-        const tempDir = './temp';
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
-        const hash = crypto.createHash('md5').update(Date.now().toString()).digest('hex');
-        return path.join(tempDir, `temp_${hash}.jpg`);
+        return await BoLuo.getImageInfo(this.inputs[0]);
     }
 }
 exports.BoLuoBuilder = BoLuoBuilder;

@@ -1,23 +1,20 @@
 import sharp from 'sharp';
-import * as path from 'path';
-import * as fs from 'fs';
 import { Checker } from './checker';
-import { InputStreamProvider, ImageInfo } from './types';
+import { ImageInfo } from './types';
 
 /**
- * 压缩引擎，负责执行图片压缩算法
+ * 前端图片压缩引擎，专为浏览器环境设计
+ * 只处理Buffer/Blob，不涉及文件系统操作
  */
 export class Engine {
-  private srcImg: InputStreamProvider;
-  private targetPath: string;
+  private srcBuffer: Buffer;
   private srcWidth: number = 0;
   private srcHeight: number = 0;
   private focusAlpha: boolean;
   private checker: Checker;
 
-  constructor(srcImg: InputStreamProvider, targetPath: string, focusAlpha: boolean = false) {
-    this.srcImg = srcImg;
-    this.targetPath = targetPath;
+  constructor(srcBuffer: Buffer, focusAlpha: boolean = false) {
+    this.srcBuffer = srcBuffer;
     this.focusAlpha = focusAlpha;
     this.checker = Checker.getInstance();
   }
@@ -26,8 +23,7 @@ export class Engine {
    * 初始化图片信息
    */
   private async initImageInfo(): Promise<void> {
-    const buffer = await this.srcImg.getBuffer();
-    const metadata = await sharp(buffer).metadata();
+    const metadata = await sharp(this.srcBuffer).metadata();
     
     this.srcWidth = metadata.width || 0;
     this.srcHeight = metadata.height || 0;
@@ -48,7 +44,6 @@ export class Engine {
     const scale = shortSide / longSide;
 
     if (scale <= 1 && scale > 0.5625) {
-      // 图片比例在 [1:1 ~ 9:16) 范围内
       if (longSide < 1664) {
         return 1;
       } else if (longSide < 4990) {
@@ -56,15 +51,11 @@ export class Engine {
       } else if (longSide > 4990 && longSide < 10240) {
         return 4;
       } else {
-        const ratio = Math.floor(longSide / 1280);
-        return ratio === 0 ? 1 : ratio;
+        return Math.max(1, longSide / 1280);
       }
     } else if (scale <= 0.5625 && scale > 0.5) {
-      // 图片比例在 [9:16 ~ 1:2) 范围内
-      const ratio = Math.floor(longSide / 1280);
-      return ratio === 0 ? 1 : ratio;
+      return Math.max(1, longSide / 1280);
     } else {
-      // 图片比例在 [1:2 ~ 1:∞) 范围内
       return Math.ceil(longSide / (1280.0 / scale));
     }
   }
@@ -74,7 +65,6 @@ export class Engine {
    */
   private computeTargetSize(): { width: number; height: number } {
     const sampleSize = this.computeSize();
-    
     return {
       width: Math.floor(this.srcWidth / sampleSize),
       height: Math.floor(this.srcHeight / sampleSize)
@@ -85,43 +75,29 @@ export class Engine {
    * 旋转图片
    */
   private async rotateImage(imageBuffer: Buffer, angle: number): Promise<Buffer> {
-    if (angle === 0) {
-      return imageBuffer;
-    }
-
-    return await sharp(imageBuffer)
-      .rotate(angle)
-      .toBuffer();
+    return sharp(imageBuffer).rotate(angle).toBuffer();
   }
 
   /**
-   * 执行压缩
+   * 压缩图片并返回Buffer
    */
-  public async compress(): Promise<string> {
+  public async compress(): Promise<Buffer> {
     try {
       await this.initImageInfo();
       
-      const buffer = await this.srcImg.getBuffer();
       const targetSize = this.computeTargetSize();
-      
-      let processedBuffer = buffer;
+      let processedBuffer = this.srcBuffer;
 
       // 检查是否需要旋转（基于EXIF信息）
-      if (this.checker.isJPG(buffer)) {
-        const orientation = this.checker.getOrientation(buffer);
+      if (this.checker.isJPG(this.srcBuffer)) {
+        const orientation = this.checker.getOrientation(this.srcBuffer);
         if (orientation !== 0) {
-          processedBuffer = await this.rotateImage(buffer, orientation);
+          processedBuffer = await this.rotateImage(this.srcBuffer, orientation);
         }
       }
 
-      // 确保目标目录存在
-      const targetDir = path.dirname(this.targetPath);
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-      }
-
       // 检测原始文件格式
-      const originalExt = await this.checker.getExtSuffix(buffer);
+      const originalExt = await this.checker.getExtSuffix(this.srcBuffer);
       
       // 使用Sharp进行压缩
       const sharpInstance = sharp(processedBuffer)
@@ -134,46 +110,43 @@ export class Engine {
       if (this.focusAlpha || originalExt === '.png' || originalExt === '.webp') {
         // 保留透明通道或原始为PNG/WebP格式
         if (originalExt === '.webp') {
-          await sharpInstance
+          return await sharpInstance
             .webp({ quality: 60 })
-            .toFile(this.targetPath);
+            .toBuffer();
         } else {
-          await sharpInstance
+          return await sharpInstance
             .png({ quality: 60 })
-            .toFile(this.targetPath);
+            .toBuffer();
         }
       } else {
         // 其他格式转为JPEG
-        await sharpInstance
+        return await sharpInstance
           .jpeg({ quality: 60 })
-          .toFile(this.targetPath);
+          .toBuffer();
       }
-
-      return this.targetPath;
     } catch (error) {
       throw new Error(`Compression failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      this.srcImg.close();
     }
   }
 
   /**
-   * 获取压缩后的文件信息
+   * 获取压缩后的图片信息
    */
-  public async getCompressedInfo(): Promise<ImageInfo> {
-    if (!fs.existsSync(this.targetPath)) {
-      throw new Error('Compressed file not found');
-    }
-
-    const buffer = fs.readFileSync(this.targetPath);
+  public async getImageInfo(buffer: Buffer): Promise<ImageInfo> {
     const metadata = await sharp(buffer).metadata();
-    const stats = fs.statSync(this.targetPath);
 
     return {
       width: metadata.width || 0,
       height: metadata.height || 0,
       format: metadata.format || 'unknown',
-      size: stats.size
+      size: buffer.length
     };
+  }
+
+  /**
+   * 获取原始图片信息
+   */
+  public async getOriginalInfo(): Promise<ImageInfo> {
+    return this.getImageInfo(this.srcBuffer);
   }
 }

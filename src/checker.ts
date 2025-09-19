@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as FileType from 'file-type';
 
 /**
@@ -193,14 +192,9 @@ export class Checker {
   /**
    * 检查是否需要压缩
    */
-  public needCompress(leastCompressSize: number, filePath: string): boolean {
+  public needCompress(leastCompressSize: number, buffer: Buffer): boolean {
     if (leastCompressSize > 0) {
-      try {
-        const stats = fs.statSync(filePath);
-        return stats.size > (leastCompressSize * 1024);
-      } catch (error) {
-        return false;
-      }
+      return buffer.length > (leastCompressSize * 1024);
     }
     return true;
   }

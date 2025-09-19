@@ -8,23 +8,6 @@ export interface CompressionOptions {
     ignoreBy?: number;
     /** 是否保留透明通道 */
     focusAlpha?: boolean;
-    /** 输出目录 */
-    targetDir?: string;
-    /** 压缩前重命名回调 */
-    renameListener?: (filePath: string) => string;
-    /** 压缩过滤器，返回true则压缩 */
-    filter?: (filePath: string) => boolean;
-}
-/**
- * 压缩监听器
- */
-export interface CompressionListener {
-    /** 压缩开始 */
-    onStart?: () => void;
-    /** 压缩成功 */
-    onSuccess?: (outputPath: string) => void;
-    /** 压缩失败 */
-    onError?: (error: Error) => void;
 }
 /**
  * 图片信息
@@ -40,20 +23,11 @@ export interface ImageInfo {
  * 压缩结果
  */
 export interface CompressionResult {
-    originalPath: string;
-    outputPath: string;
     originalSize: number;
     compressedSize: number;
     compressionRatio: number;
     width: number;
     height: number;
-}
-/**
- * 输入流提供者接口
- */
-export interface InputStreamProvider {
-    getPath(): string;
-    getBuffer(): Promise<Buffer>;
-    close(): void;
+    format: string;
 }
 //# sourceMappingURL=types.d.ts.map

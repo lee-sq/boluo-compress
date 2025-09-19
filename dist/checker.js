@@ -34,7 +34,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Checker = void 0;
-const fs = __importStar(require("fs"));
 const FileType = __importStar(require("file-type"));
 /**
  * 图片检测器，用于检测图片格式、EXIF信息等
@@ -205,15 +204,9 @@ class Checker {
     /**
      * 检查是否需要压缩
      */
-    needCompress(leastCompressSize, filePath) {
+    needCompress(leastCompressSize, buffer) {
         if (leastCompressSize > 0) {
-            try {
-                const stats = fs.statSync(filePath);
-                return stats.size > (leastCompressSize * 1024);
-            }
-            catch (error) {
-                return false;
-            }
+            return buffer.length > (leastCompressSize * 1024);
         }
         return true;
     }

@@ -23,7 +23,7 @@ export declare class Checker {
     /**
      * 检查是否需要压缩
      */
-    needCompress(leastCompressSize: number, filePath: string): boolean;
+    needCompress(leastCompressSize: number, buffer: Buffer): boolean;
     /**
      * 打包字节数据
      */

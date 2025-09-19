@@ -1,9 +1,10 @@
 {
   "name": "boluo-image",
-  "version": "1.0.0",
-  "description": "BoLuo - TypeScript implementation of image compression library, inspired by WeChat Moments compression strategy",
+  "version": "2.0.0",
+  "description": "BoLuo - Pure frontend image compression library for browsers, inspired by WeChat Moments compression strategy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "browser": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -18,13 +19,16 @@
     "luban",
     "typescript",
     "wechat",
-    "moments"
+    "moments",
+    "frontend",
+    "browser",
+    "blob",
+    "canvas-free"
   ],
-  "author": "Your Name",
+  "author": "lee-sq",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.0",
-    "@types/node": "^18.15.0",
     "@typescript-eslint/eslint-plugin": "^5.57.0",
     "@typescript-eslint/parser": "^5.57.0",
     "eslint": "^8.37.0",
@@ -37,14 +41,15 @@
     "sharp": "^0.32.0"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "README.md"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/boluo.git"
+    "url": "https://github.com/lee-sq/boluo-compress.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/boluo/issues"
+    "url": "https://github.com/lee-sq/boluo-compress/issues"
   },
-  "homepage": "https://github.com/your-username/boluo#readme"
+  "homepage": "https://github.com/lee-sq/boluo-compress#readme"
 }

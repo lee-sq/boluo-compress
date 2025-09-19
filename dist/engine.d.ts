@@ -1,15 +1,15 @@
-import { InputStreamProvider, ImageInfo } from './types';
+import { ImageInfo } from './types';
 /**
- * 压缩引擎，负责执行图片压缩算法
+ * 前端图片压缩引擎，专为浏览器环境设计
+ * 只处理Buffer/Blob，不涉及文件系统操作
  */
 export declare class Engine {
-    private srcImg;
-    private targetPath;
+    private srcBuffer;
     private srcWidth;
     private srcHeight;
     private focusAlpha;
     private checker;
-    constructor(srcImg: InputStreamProvider, targetPath: string, focusAlpha?: boolean);
+    constructor(srcBuffer: Buffer, focusAlpha?: boolean);
     /**
      * 初始化图片信息
      */
@@ -28,12 +28,16 @@ export declare class Engine {
      */
     private rotateImage;
     /**
-     * 执行压缩
+     * 压缩图片并返回Buffer
      */
-    compress(): Promise<string>;
+    compress(): Promise<Buffer>;
     /**
-     * 获取压缩后的文件信息
+     * 获取压缩后的图片信息
      */
-    getCompressedInfo(): Promise<ImageInfo>;
+    getImageInfo(buffer: Buffer): Promise<ImageInfo>;
+    /**
+     * 获取原始图片信息
+     */
+    getOriginalInfo(): Promise<ImageInfo>;
 }
 //# sourceMappingURL=engine.d.ts.map

@@ -1,90 +1,74 @@
-import { CompressionOptions, CompressionListener, CompressionResult } from './types';
+import { CompressionOptions, ImageInfo } from './types';
 /**
- * BoLuo图片压缩库主类
+ * 前端图片压缩库 - BoLuo
+ * 专为浏览器环境设计，只处理Blob/Buffer对象
  */
 export declare class BoLuo {
     private static defaultOptions;
     /**
-     * 创建BoLuo实例
+     * 压缩单个Blob/Buffer
+     * @param input - 输入的Blob或Buffer
+     * @param options - 压缩选项
+     * @returns 压缩后的Buffer
+     */
+    static compress(input: Blob | Buffer, options?: CompressionOptions): Promise<Buffer>;
+    /**
+     * 压缩多个Blob/Buffer
+     * @param inputs - 输入的Blob或Buffer数组
+     * @param options - 压缩选项
+     * @returns 压缩后的Buffer数组
+     */
+    static compressMultiple(inputs: (Blob | Buffer)[], options?: CompressionOptions): Promise<Buffer[]>;
+    /**
+     * 获取图片信息
+     * @param input - 输入的Blob或Buffer
+     * @returns 图片信息
+     */
+    static getImageInfo(input: Blob | Buffer): Promise<ImageInfo>;
+    /**
+     * 检查是否为支持的图片格式
+     * @param input - 输入的Blob或Buffer
+     * @returns 是否为支持的格式
+     */
+    static isValidImage(input: Blob | Buffer): Promise<boolean>;
+    /**
+     * 创建Builder实例
      */
     static create(): BoLuoBuilder;
-    /**
-     * 压缩单个文件
-     */
-    static compressFile(filePath: string, options?: CompressionOptions): Promise<CompressionResult>;
-    /**
-     * 压缩多个文件
-     */
-    static compressFiles(filePaths: string[], options?: CompressionOptions): Promise<CompressionResult[]>;
 }
 /**
- * BoLuo构建器类
+ * BoLuo Builder类，提供链式调用API
  */
 export declare class BoLuoBuilder {
-    private inputPaths;
+    private inputs;
     private options;
-    private listener?;
-    private checker;
-    constructor();
     /**
-     * 加载要压缩的文件
+     * 加载输入数据
      */
-    load(input: string | string[] | Buffer): BoLuoBuilder;
-    /**
-     * 设置压缩选项
-     */
-    setOptions(options: CompressionOptions): BoLuoBuilder;
+    load(input: Blob | Buffer | (Blob | Buffer)[]): BoLuoBuilder;
     /**
      * 设置压缩质量
      */
     quality(quality: number): BoLuoBuilder;
     /**
-     * 设置最小压缩阈值
+     * 设置最小压缩阈值（KB）
      */
-    ignoreBy(size: number): BoLuoBuilder;
+    ignoreBy(sizeKB: number): BoLuoBuilder;
     /**
      * 设置是否保留透明通道
      */
     setFocusAlpha(focusAlpha: boolean): BoLuoBuilder;
     /**
-     * 设置输出目录
+     * 压缩单个输入（仅支持单个输入）
      */
-    setTargetDir(targetDir: string): BoLuoBuilder;
+    compress(): Promise<Buffer>;
     /**
-     * 设置过滤器
+     * 压缩所有输入
      */
-    filter(filter: (filePath: string) => boolean): BoLuoBuilder;
+    compressAll(): Promise<Buffer[]>;
     /**
-     * 设置重命名监听器
+     * 获取第一个输入的图片信息
      */
-    setRenameListener(renameListener: (filePath: string) => string): BoLuoBuilder;
-    /**
-     * 设置压缩监听器
-     */
-    setCompressListener(listener: CompressionListener): BoLuoBuilder;
-    /**
-     * 异步启动压缩
-     */
-    launch(): Promise<void>;
-    /**
-     * 同步获取压缩结果（单个文件）
-     */
-    get(): Promise<CompressionResult>;
-    /**
-     * 同步获取压缩结果（多个文件）
-     */
-    getAll(): Promise<CompressionResult[]>;
-    /**
-     * 压缩单个文件的内部方法
-     */
-    private compressFile;
-    /**
-     * 生成输出文件路径
-     */
-    private generateOutputPath;
-    /**
-     * 创建临时文件路径
-     */
-    private createTempPath;
+    getImageInfo(): Promise<ImageInfo>;
 }
 //# sourceMappingURL=boluo.d.ts.map
