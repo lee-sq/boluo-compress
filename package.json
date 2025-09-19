@@ -1,0 +1,49 @@
+{
+  "name": "luban-ts",
+  "version": "1.0.0",
+  "description": "TypeScript implementation of Luban image compression library, inspired by WeChat Moments compression strategy",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "image",
+    "compression",
+    "luban",
+    "typescript",
+    "wechat",
+    "moments"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.15.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "eslint": "^8.37.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "file-type": "^16.5.4",
+    "sharp": "^0.32.0"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/boluo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/boluo/issues"
+  },
+  "homepage": "https://github.com/your-username/boluo#readme"
+}
