@@ -1,4 +1,4 @@
-import { BrowserEngine } from './browser-engine';
+import { Engine } from './engine';
 import { Checker } from './checker';
 import { CompressionOptions } from './types';
 
@@ -6,14 +6,14 @@ import { CompressionOptions } from './types';
  * BoLuo 浏览器版本 - 纯前端图片压缩库
  * 提供简单易用的静态方法API
  */
-export class BoLuoBrowser {
-  private engine: BrowserEngine;
+export class Boluo {
+  private engine: Engine;
   private checker: Checker;
   private srcBuffer: Buffer;
 
   constructor(srcBuffer: Buffer) {
     this.srcBuffer = srcBuffer;
-    this.engine = new BrowserEngine(srcBuffer);
+    this.engine = new Engine(srcBuffer);
     this.checker = Checker.getInstance();
   }
 
@@ -78,7 +78,7 @@ export class BoLuoBrowser {
    */
   static async compress(file: File | Blob, quality: number = 0.8): Promise<Blob> {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const compressor = new BoLuoBrowser(buffer);
+    const compressor = new Boluo(buffer);
     return compressor.compressToBlob({ quality });
   }
 
@@ -90,7 +90,7 @@ export class BoLuoBrowser {
    */
   static async compressToBuffer(file: File | Blob, quality: number = 0.8): Promise<Buffer> {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const compressor = new BoLuoBrowser(buffer);
+    const compressor = new Boluo(buffer);
     return compressor.compress({ quality });
   }
 
@@ -103,7 +103,7 @@ export class BoLuoBrowser {
   static async compressMultiple(files: (File | Blob)[], quality: number = 0.8): Promise<Blob[]> {
     const results: Blob[] = [];
     for (const file of files) {
-      const compressed = await BoLuoBrowser.compress(file, quality);
+      const compressed = await Boluo.compress(file, quality);
       results.push(compressed);
     }
     return results;
@@ -112,27 +112,27 @@ export class BoLuoBrowser {
   /**
    * 从 File 创建实例（保留原有API兼容性）
    */
-  static async fromFile(file: File): Promise<BoLuoBrowser> {
+  static async fromFile(file: File): Promise<Boluo> {
     const buffer = Buffer.from(await file.arrayBuffer());
-    return new BoLuoBrowser(buffer);
+    return new Boluo(buffer);
   }
 
   /**
    * 从 Blob 创建实例（保留原有API兼容性）
    */
-  static async fromBlob(blob: Blob): Promise<BoLuoBrowser> {
+  static async fromBlob(blob: Blob): Promise<Boluo> {
     const buffer = Buffer.from(await blob.arrayBuffer());
-    return new BoLuoBrowser(buffer);
+    return new Boluo(buffer);
   }
 
   /**
    * 从 Blob URL 创建实例（保留原有API兼容性）
    */
-  static async fromBlobUrl(blobUrl: string): Promise<BoLuoBrowser> {
+  static async fromBlobUrl(blobUrl: string): Promise<Boluo> {
     const response = await fetch(blobUrl);
     const blob = await response.blob();
-    return BoLuoBrowser.fromBlob(blob);
+    return Boluo.fromBlob(blob);
   }
 }
 
-export default BoLuoBrowser;
+export default Boluo;

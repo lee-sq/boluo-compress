@@ -1,231 +1,220 @@
-# BoLuo Image - 纯前端图片压缩库
+# BoLuo Compress 🖼️
 
-一个纯前端的图片压缩库，专为浏览器环境设计，无需任何Node.js依赖。
+[![npm version](https://badge.fury.io/js/boluo-compress.svg)](https://badge.fury.io/js/boluo-compress)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-## 特性
+[English](#english) | [中文](#中文) | [한국어](#한국어) | [日本語](#日本語)
 
-- 🌐 **纯前端实现** - 完全在浏览器中运行，无需服务器端处理
-- 🎨 **Canvas技术** - 基于HTML5 Canvas API进行图片处理
-- 📱 **移动端友好** - 支持移动设备的图片压缩需求
-- 🔧 **TypeScript支持** - 完整的类型定义
-- 📦 **零依赖** - 不依赖任何外部库
-- 🚀 **轻量级** - 体积小，加载快
-- ⚡ **简化API** - 提供静态方法，无需创建实例
+---
 
-## 安装
+## English
+
+### Pure Frontend Image Compression Library
+
+A lightweight, high-performance browser-side image compression solution built entirely with frontend technologies, requiring no server-side support.
+
+#### ✨ Features
+
+- 🚀 **Pure Frontend**: Built with Canvas API, no server required
+- 📦 **TypeScript Support**: Full type definitions included
+- 🎛️ **Flexible Options**: Quality control, dimensions, alpha channel preservation
+- 📊 **Smart Compression**: Intelligent thresholds to avoid over-compression
+- 🔄 **Batch Processing**: Handle multiple files simultaneously
+- 📱 **EXIF Support**: Automatic orientation handling
+- 🎯 **Multiple Outputs**: Buffer, Blob, and File formats
+
+#### 🚀 Quick Start
 
 ```bash
-npm install boluo-image
+npm install boluo-compress
 ```
-
-## 快速开始
-
-### 最简单的用法（推荐）
-
-```javascript
-import { BoLuoBrowser } from 'boluo-image';
-
-// 直接压缩文件，无需创建实例
-const file = document.getElementById('fileInput').files[0];
-const compressedBlob = await BoLuoBrowser.compress(file, 0.8);
-
-// 下载压缩后的图片
-const url = URL.createObjectURL(compressedBlob);
-const a = document.createElement('a');
-a.href = url;
-a.download = 'compressed-image.jpg';
-a.click();
-```
-
-### 从Blob URL压缩
-
-```javascript
-import { BoLuoBrowser } from 'boluo-image';
-
-// 如果你有blob://路径
-const blobUrl = 'blob:http://localhost:3000/xxx-xxx-xxx';
-const compressor = await BoLuoBrowser.fromBlobUrl(blobUrl);
-const compressedBlob = await compressor.compressToBlob({ quality: 0.6 });
-```
-
-## API 文档
-
-### 静态方法（推荐使用）
-
-#### `BoLuoBrowser.compress(file, quality?)`
-
-最简单的压缩方法，直接返回压缩后的Blob。
 
 ```typescript
-static async compress(file: File | Blob, quality: number = 0.8): Promise<Blob>
-```
+import BoLuo from 'boluo-compress';
 
-**参数：**
-- `file`: 要压缩的文件或Blob
-- `quality`: 压缩质量 (0-1)，默认 0.8
+// Simple compression
+const compressedBlob = await BoLuo.compress(file, 0.8);
 
-**示例：**
-```javascript
-const compressedBlob = await BoLuoBrowser.compress(file, 0.6);
-```
-
-#### `BoLuoBrowser.compressToBuffer(file, quality?)`
-
-压缩并返回Buffer格式。
-
-```typescript
-static async compressToBuffer(file: File | Blob, quality: number = 0.8): Promise<Buffer>
-```
-
-#### `BoLuoBrowser.compressMultiple(files, quality?)`
-
-批量压缩多个文件。
-
-```typescript
-static async compressMultiple(files: (File | Blob)[], quality: number = 0.8): Promise<Blob[]>
-```
-
-**示例：**
-```javascript
-const files = Array.from(document.getElementById('fileInput').files);
-const compressedBlobs = await BoLuoBrowser.compressMultiple(files, 0.7);
-```
-
-### 实例方法（高级用法）
-
-当你需要更精细的控制时，可以创建实例：
-
-```javascript
-import { BoLuoBrowser } from 'boluo-image';
-
-// 从文件创建实例
-const compressor = await BoLuoBrowser.fromFile(file);
-
-// 从Blob创建实例
-const compressor = await BoLuoBrowser.fromBlob(blob);
-
-// 从Blob URL创建实例
-const compressor = await BoLuoBrowser.fromBlobUrl(blobUrl);
-
-// 高级压缩配置
-const compressedBlob = await compressor.compressToBlob({
-  quality: 0.8,        // 压缩质量 (0-1)
-  maxWidth: 1920,      // 最大宽度
-  maxHeight: 1080,     // 最大高度
-  ignoreBy: 10,        // 忽略小于指定KB的文件
-  focusAlpha: false    // 是否关注透明度
+// Advanced options
+const boluo = await BoLuo.fromFile(file);
+const result = await boluo.compress({
+  quality: 0.8,
+  maxWidth: 1920,
+  maxHeight: 1080,
+  ignoreBy: 10 // Skip files smaller than 10KB
 });
 ```
 
-### 配置选项
+#### 📖 API Reference
 
-```typescript
-interface CompressionOptions {
-  quality?: number;      // 压缩质量 (0-1)，默认 0.8
-  maxWidth?: number;     // 最大宽度
-  maxHeight?: number;    // 最大高度
-  ignoreBy?: number;     // 忽略小于指定KB的文件，默认 10
-  focusAlpha?: boolean;  // 是否关注透明度，默认 false
-}
+##### Static Methods
+- `BoLuo.compress(file, quality)` - Quick compression
+- `BoLuo.compressToBuffer(file, quality)` - Returns Buffer
+- `BoLuo.compressMultiple(files, quality)` - Batch processing
+- `BoLuo.fromFile(file)` - Create instance from File
+- `BoLuo.fromBlob(blob)` - Create instance from Blob
+
+##### Instance Methods
+- `compress(options)` - Compress with options
+- `compressToBlob(options)` - Returns Blob
+- `getImageInfo()` - Get image metadata
+- `isJPG()` - Check if JPEG format
+- `getOrientation()` - Get EXIF orientation
+
+#### 🛠️ Tech Stack
+TypeScript | Canvas API | Buffer | Webpack
+
+---
+
+## 中文
+
+### 纯前端图片压缩库
+
+一个轻量级、高性能的浏览器端图片压缩解决方案，完全基于前端技术实现，无需服务器端支持。
+
+#### ✨ 特性
+
+- 🚀 **纯前端实现**: 基于Canvas API，无需服务器
+- 📦 **TypeScript支持**: 包含完整类型定义
+- 🎛️ **灵活配置**: 质量控制、尺寸限制、透明通道保留
+- 📊 **智能压缩**: 智能阈值避免过度压缩
+- 🔄 **批量处理**: 同时处理多个文件
+- 📱 **EXIF支持**: 自动处理图片方向
+- 🎯 **多种输出**: Buffer、Blob、File格式
+
+#### 🚀 快速开始
+
+```bash
+npm install boluo-compress
 ```
 
-### 质量参数说明
+```typescript
+import BoLuo from 'boluo-compress';
 
-质量参数范围为 0-1：
-- **0.1-0.3**: 高压缩率，文件最小，适合缩略图
-- **0.4-0.6**: 平衡压缩，适合一般用途
-- **0.7-0.9**: 高质量，文件较大，适合重要图片
-- **1.0**: 最高质量，压缩率最低
+// 简单压缩
+const compressedBlob = await BoLuo.compress(file, 0.8);
 
-## 实际使用示例
-
-### 文件上传压缩
-
-```javascript
-document.getElementById('fileInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  console.log('原文件大小:', (file.size / 1024 / 1024).toFixed(2) + 'MB');
-  
-  // 压缩图片
-  const compressedBlob = await BoLuoBrowser.compress(file, 0.8);
-  
-  console.log('压缩后大小:', (compressedBlob.size / 1024 / 1024).toFixed(2) + 'MB');
-  
-  // 预览压缩后的图片
-  const previewUrl = URL.createObjectURL(compressedBlob);
-  document.getElementById('preview').src = previewUrl;
+// 高级选项
+const boluo = await BoLuo.fromFile(file);
+const result = await boluo.compress({
+  quality: 0.8,
+  maxWidth: 1920,
+  maxHeight: 1080,
+  ignoreBy: 10 // 跳过小于10KB的文件
 });
 ```
 
-### 批量处理
+#### 📖 API参考
 
-```javascript
-async function compressImages(files) {
-  const results = [];
-  
-  for (const file of files) {
-    try {
-      const compressed = await BoLuoBrowser.compress(file, 0.7);
-      results.push({
-        original: file,
-        compressed: compressed,
-        ratio: ((1 - compressed.size / file.size) * 100).toFixed(1) + '%'
-      });
-    } catch (error) {
-      console.error('压缩失败:', file.name, error);
-    }
-  }
-  
-  return results;
-}
+##### 静态方法
+- `BoLuo.compress(file, quality)` - 快速压缩
+- `BoLuo.compressToBuffer(file, quality)` - 返回Buffer
+- `BoLuo.compressMultiple(files, quality)` - 批量处理
+- `BoLuo.fromFile(file)` - 从File创建实例
+- `BoLuo.fromBlob(blob)` - 从Blob创建实例
+
+##### 实例方法
+- `compress(options)` - 使用选项压缩
+- `compressToBlob(options)` - 返回Blob
+- `getImageInfo()` - 获取图片元数据
+- `isJPG()` - 检查是否为JPEG格式
+- `getOrientation()` - 获取EXIF方向信息
+
+---
+
+## 한국어
+
+### 순수 프론트엔드 이미지 압축 라이브러리
+
+서버 지원 없이 프론트엔드 기술만으로 구축된 가볍고 고성능의 브라우저 측 이미지 압축 솔루션입니다.
+
+#### ✨ 특징
+
+- 🚀 **순수 프론트엔드**: Canvas API 기반, 서버 불필요
+- 📦 **TypeScript 지원**: 완전한 타입 정의 포함
+- 🎛️ **유연한 옵션**: 품질 제어, 크기 제한, 알파 채널 보존
+- 📊 **스마트 압축**: 과도한 압축을 피하는 지능형 임계값
+- 🔄 **배치 처리**: 여러 파일 동시 처리
+- 📱 **EXIF 지원**: 자동 방향 처리
+- 🎯 **다중 출력**: Buffer, Blob, File 형식
+
+#### 🚀 빠른 시작
+
+```bash
+npm install boluo-compress
 ```
 
-### 动态质量调整
+```typescript
+import BoLuo from 'boluo-compress';
 
-```javascript
-async function smartCompress(file, targetSizeKB = 200) {
-  let quality = 0.8;
-  let compressed;
-  
-  do {
-    compressed = await BoLuoBrowser.compress(file, quality);
-    if (compressed.size / 1024 <= targetSizeKB) break;
-    quality -= 0.1;
-  } while (quality > 0.1);
-  
-  return compressed;
-}
+// 간단한 압축
+const compressedBlob = await BoLuo.compress(file, 0.8);
+
+// 고급 옵션
+const boluo = await BoLuo.fromFile(file);
+const result = await boluo.compress({
+  quality: 0.8,
+  maxWidth: 1920,
+  maxHeight: 1080,
+  ignoreBy: 10 // 10KB 미만 파일 건너뛰기
+});
 ```
 
-## 浏览器兼容性
+---
 
-- Chrome 51+
-- Firefox 50+
-- Safari 10+
-- Edge 79+
+## 日本語
 
-## 示例
+### 純粋なフロントエンド画像圧縮ライブラリ
 
-查看 `demo-browser.html` 文件获取完整的使用示例。
+サーバーサイドのサポートを必要とせず、フロントエンド技術のみで構築された軽量で高性能なブラウザサイド画像圧縮ソリューションです。
 
-## 更新日志
+#### ✨ 特徴
 
-### v2.3.0
-- ✨ 新增静态方法API，使用更简单
-- 🔧 质量参数标准化为0-1范围
-- 📦 新增批量压缩功能
-- 🎯 改进压缩算法和默认参数
+- 🚀 **純粋なフロントエンド**: Canvas API ベース、サーバー不要
+- 📦 **TypeScript サポート**: 完全な型定義を含む
+- 🎛️ **柔軟なオプション**: 品質制御、寸法制限、アルファチャンネル保持
+- 📊 **スマート圧縮**: 過度な圧縮を避けるインテリジェントな閾値
+- 🔄 **バッチ処理**: 複数ファイルの同時処理
+- 📱 **EXIF サポート**: 自動方向処理
+- 🎯 **複数出力**: Buffer、Blob、File 形式
 
-## 许可证
+#### 🚀 クイックスタート
 
-MIT License
+```bash
+npm install boluo-compress
+```
 
-## 贡献
+```typescript
+import BoLuo from 'boluo-compress';
 
-欢迎提交 Issue 和 Pull Request！
+// シンプルな圧縮
+const compressedBlob = await BoLuo.compress(file, 0.8);
 
-## 支持
+// 高度なオプション
+const boluo = await BoLuo.fromFile(file);
+const result = await boluo.compress({
+  quality: 0.8,
+  maxWidth: 1920,
+  maxHeight: 1080,
+  ignoreBy: 10 // 10KB未満のファイルをスキップ
+});
+```
 
-如果这个项目对你有帮助，请给个 ⭐️ Star！
+---
+
+## 📄 License
+
+MIT © [lee-sq](https://github.com/lee-sq)
+
+## 🤝 Contributing
+
+Contributions, issues and feature requests are welcome!
+
+## 📞 Support
+
+If you like this project, please give it a ⭐️!
+
+---
+
+**Repository**: [https://github.com/lee-sq/boluo-compress](https://github.com/lee-sq/boluo-compress)

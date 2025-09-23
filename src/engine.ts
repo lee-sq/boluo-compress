@@ -1,11 +1,10 @@
 /**
- * 浏览器专用图像处理引擎
- * 使用 Canvas API 替代 Sharp，支持纯前端环境
+ * 图像处理引擎
  */
 
 import { CompressionOptions, ImageInfo } from './types';
 
-export class BrowserEngine {
+export class Engine {
   private srcBuffer: Buffer;
 
   constructor(buffer: Buffer) {
