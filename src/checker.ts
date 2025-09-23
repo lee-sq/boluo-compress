@@ -1,4 +1,4 @@
-import * as FileType from 'file-type';
+// 移除 file-type 依赖，使用纯前端实现
 
 /**
  * 图片检测器，用于检测图片格式、EXIF信息等
@@ -29,196 +29,155 @@ export class Checker {
   }
 
   /**
-   * 获取图片旋转角度
-   * 返回值: 0, 90, 180, 270
+   * 获取图片方向信息
    */
   public getOrientation(buffer: Buffer): number {
-    if (!buffer) {
-      return 0;
+    if (!this.isJPG(buffer)) {
+      return 1; // 默认方向
     }
 
-    let offset = 0;
-    let length = 0;
-
-    // ISO/IEC 10918-1:1993(E)
-    while (offset + 3 < buffer.length && (buffer[offset++] & 0xFF) === 0xFF) {
-      const marker = buffer[offset] & 0xFF;
-
-      // 检查是否为填充标记
-      if (marker === 0xFF) {
-        continue;
-      }
-      offset++;
-
-      // 检查是否为SOI或TEM标记
-      if (marker === 0xD8 || marker === 0x01) {
-        continue;
-      }
-      
-      // 检查是否为EOI或SOS标记
-      if (marker === 0xD9 || marker === 0xDA) {
-        break;
-      }
-
-      // 获取长度并检查是否合理
-      length = this.pack(buffer, offset, 2, false);
-      if (length < 2 || offset + length > buffer.length) {
-        console.error('Invalid length');
-        return 0;
-      }
-
-      // 如果是APP1中的EXIF标记则跳出
-      if (marker === 0xE1 && length >= 8
-          && this.pack(buffer, offset + 2, 4, false) === 0x45786966
-          && this.pack(buffer, offset + 6, 2, false) === 0) {
-        offset += 8;
-        length -= 8;
-        break;
-      }
-
-      // 跳过其他标记
-      offset += length;
-      length = 0;
-    }
-
-    // JEITA CP-3451 Exif Version 2.2
-    if (length > 8) {
-      // 识别字节序
-      const tag = this.pack(buffer, offset, 4, false);
-      if (tag !== 0x49492A00 && tag !== 0x4D4D002A) {
-        console.error('Invalid byte order');
-        return 0;
-      }
-      const littleEndian = (tag === 0x49492A00);
-
-      // 获取偏移量并检查是否合理
-      let count = this.pack(buffer, offset + 4, 4, littleEndian) + 2;
-      if (count < 10 || count > length) {
-        console.error('Invalid offset');
-        return 0;
-      }
-      offset += count;
-      length -= count;
-
-      // 获取计数并遍历所有元素
-      count = this.pack(buffer, offset - 2, 2, littleEndian);
-      while (count-- > 0 && length >= 12) {
-        // 获取标签并检查是否为方向标签
-        const orientationTag = this.pack(buffer, offset, 2, littleEndian);
-        if (orientationTag === 0x0112) {
-          const orientation = this.pack(buffer, offset + 8, 2, littleEndian);
-          switch (orientation) {
-            case 1:
-              return 0;
-            case 3:
-              return 180;
-            case 6:
-              return 90;
-            case 8:
-              return 270;
-            default:
-              console.error('Unsupported orientation');
-              return 0;
-          }
+    try {
+      // 查找EXIF数据
+      for (let i = 0; i < buffer.length - 1; i++) {
+        if (buffer[i] === 0xFF && buffer[i + 1] === 0xE1) {
+          // 找到APP1段，包含EXIF数据
+          const exifLength = (buffer[i + 2] << 8) | buffer[i + 3];
+          const exifData = buffer.slice(i + 4, i + 4 + exifLength - 2);
+          
+          // 查找方向标签 (0x0112)
+          return this.extractOrientation(exifData);
         }
-        offset += 12;
-        length -= 12;
       }
+    } catch (error) {
+      console.warn('Failed to extract orientation:', error);
     }
 
-    console.error('Orientation not found');
-    return 0;
+    return 1; // 默认方向
   }
 
   /**
-   * 获取文件扩展名
-   * 使用file-type库进行更准确的文件类型检测
+   * 从EXIF数据中提取方向信息
    */
-  public async getExtSuffix(buffer: Buffer): Promise<string> {
-    try {
-      // 使用file-type库进行文件类型检测
-      const fileType = await FileType.fromBuffer(buffer);
+  private extractOrientation(exifData: Buffer): number {
+    if (exifData.length < 14) return 1;
+
+    // 检查EXIF标识符
+    if (exifData[0] !== 0x45 || exifData[1] !== 0x78 || 
+        exifData[2] !== 0x69 || exifData[3] !== 0x66) {
+      return 1;
+    }
+
+    // 跳过EXIF标识符和空字节
+    let offset = 6;
+    
+    // 检查字节序
+    const littleEndian = exifData[offset] === 0x49 && exifData[offset + 1] === 0x49;
+    offset += 2;
+
+    // 跳过TIFF标识
+    offset += 2;
+
+    // 获取IFD偏移
+    const ifdOffset = this.pack(exifData, offset, 4, littleEndian);
+    offset = 6 + ifdOffset;
+
+    if (offset >= exifData.length) return 1;
+
+    // 读取IFD条目数量
+    const numEntries = this.pack(exifData, offset, 2, littleEndian);
+    offset += 2;
+
+    // 遍历IFD条目查找方向标签
+    for (let i = 0; i < numEntries; i++) {
+      if (offset + 12 > exifData.length) break;
       
-      if (fileType) {
-        // 支持的图片格式映射
-        const supportedFormats: { [key: string]: string } = {
-          'jpg': '.jpg',
-          'jpeg': '.jpg', 
-          'png': '.png',
-          'webp': '.webp',
-          'gif': '.gif',
-          'bmp': '.bmp',
-          'tiff': '.tiff',
-          'avif': '.avif',
-          'heic': '.heic',
-          'heif': '.heif'
-        };
-        
-        const extension = supportedFormats[fileType.ext];
-        if (extension) {
-          return extension;
-        }
+      const tag = this.pack(exifData, offset, 2, littleEndian);
+      if (tag === 0x0112) { // 方向标签
+        const orientation = this.pack(exifData, offset + 8, 2, littleEndian);
+        return orientation;
       }
-      
-      // 如果file-type检测失败，回退到原有的简单检测
-      if (this.isJPG(buffer)) {
+      offset += 12;
+    }
+
+    return 1;
+  }
+
+  /**
+   * 获取文件扩展名后缀
+   * 使用文件头部字节进行文件类型检测
+   */
+  public getExtSuffix(buffer: Buffer): string {
+    try {
+      // 检查文件头部字节来判断文件类型
+      if (buffer.length < 4) {
+        return '.jpg'; // 默认返回jpg
+      }
+
+      // JPEG: FF D8 FF
+      if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
         return '.jpg';
       }
       
-      // PNG检测
-      if (buffer.length >= 8 && 
-          buffer[0] === 0x89 && buffer[1] === 0x50 && 
-          buffer[2] === 0x4E && buffer[3] === 0x47) {
+      // PNG: 89 50 4E 47
+      if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
         return '.png';
       }
       
-      // WebP检测
-      if (buffer.length >= 12 && 
-          buffer[0] === 0x52 && buffer[1] === 0x49 && 
-          buffer[2] === 0x46 && buffer[3] === 0x46 &&
-          buffer[8] === 0x57 && buffer[9] === 0x45 && 
-          buffer[10] === 0x42 && buffer[11] === 0x50) {
+      // WebP: 52 49 46 46 ... 57 45 42 50
+      if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+          buffer.length >= 12 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) {
         return '.webp';
       }
       
+      // GIF: 47 49 46 38
+      if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+        return '.gif';
+      }
+      
+      // BMP: 42 4D
+      if (buffer[0] === 0x42 && buffer[1] === 0x4D) {
+        return '.bmp';
+      }
+
       // 默认返回jpg
-      return this.JPG_EXT;
+      return '.jpg';
+      
     } catch (error) {
-      // 发生错误时回退到jpg格式
-      return this.JPG_EXT;
+      console.warn('Failed to detect file type:', error);
+      return '.jpg';
     }
   }
 
   /**
-   * 检查是否需要压缩
+   * 判断是否需要压缩
    */
   public needCompress(leastCompressSize: number, buffer: Buffer): boolean {
     if (leastCompressSize > 0) {
-      return buffer.length > (leastCompressSize * 1024);
+      const sizeInKB = buffer.length / 1024;
+      return sizeInKB >= leastCompressSize;
     }
     return true;
   }
 
   /**
-   * 打包字节数据
+   * 从buffer中按指定字节序读取数值
    */
   private pack(buffer: Buffer, offset: number, length: number, littleEndian: boolean): number {
-    let step = 1;
+    let result = 0;
     if (littleEndian) {
-      offset += length - 1;
-      step = -1;
+      for (let i = 0; i < length; i++) {
+        result |= buffer[offset + i] << (i * 8);
+      }
+    } else {
+      for (let i = 0; i < length; i++) {
+        result = (result << 8) | buffer[offset + i];
+      }
     }
-
-    let value = 0;
-    while (length-- > 0) {
-      value = (value << 8) | (buffer[offset] & 0xFF);
-      offset += step;
-    }
-    return value;
+    return result;
   }
 
   /**
-   * 比较两个数组是否相等
+   * 比较两个Uint8Array是否相等
    */
   private arraysEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a.length !== b.length) return false;

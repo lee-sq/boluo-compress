@@ -8,6 +8,10 @@ export interface CompressionOptions {
   ignoreBy?: number;
   /** 是否保留透明通道 */
   focusAlpha?: boolean;
+  /** 最大宽度 */
+  maxWidth?: number;
+  /** 最大高度 */
+  maxHeight?: number;
 }
 
 /**

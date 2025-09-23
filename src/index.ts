@@ -3,11 +3,11 @@
  * 
  * 主要导出模块
  */
-export { BoLuo, BoLuoBuilder } from './boluo';
+export { BoLuoBrowser as BoLuo } from './boluo-browser';
 export type { CompressionOptions, CompressionResult, ImageInfo } from './types';
 export { Checker } from './checker';
-export { Engine } from './engine';
+export { BrowserEngine as Engine } from './browser-engine';
 
 // 默认导出BoLuo类
-import { BoLuo } from './boluo';
-export default BoLuo;
+import { BoLuoBrowser } from './boluo-browser';
+export default BoLuoBrowser;

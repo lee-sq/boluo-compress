@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoLuo 图片压缩 - Blob URL 使用示例</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #007AFF;
+        }
+        .upload-btn {
+            background: #007AFF;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upload-btn:hover {
+            background: #0056b3;
+        }
+        .image-container {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .image-box {
+            flex: 1;
+            min-width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .image-box h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .image-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .info {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .download-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background: #218838;
+        }
+        .code-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 BoLuo 图片压缩 - Blob URL 使用示例</h1>
+        
+        <div class="highlight">
+            <h3>💡 关键概念：Blob URL</h3>
+            <p>当你使用 <code>BoLuo.compressToBlob()</code> 获得压缩后的 Blob 时，需要通过 <code>URL.createObjectURL(blob)</code> 创建一个临时的 URL 来使用它。</p>
+        </div>
+
+        <div class="upload-area">
+            <p>📁 选择图片文件体验 Blob URL 的使用</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                选择图片文件
+            </button>
+        </div>
+
+        <div id="results"></div>
+
+        <div class="code-example">
+            <h3>📝 核心代码示例：</h3>
+            <pre><code>// 1. 压缩图片获取 Blob
+const compressedBlob = await BoLuo.compressToBlob(file, { quality: 80 });
+
+// 2. 创建 Blob URL
+const blobUrl = URL.createObjectURL(compressedBlob);
+
+// 3. 使用 Blob URL
+// 显示图片
+img.src = blobUrl;
+
+// 下载文件
+link.href = blobUrl;
+link.download = 'compressed.jpg';
+
+// 上传到服务器
+const formData = new FormData();
+formData.append('image', compressedBlob, 'compressed.jpg');
+
+// 4. 清理资源（可选）
+URL.revokeObjectURL(blobUrl);</code></pre>
+        </div>
+
+        <div class="highlight">
+            <h3>🔄 完整的使用流程：</h3>
+            <ol>
+                <li><strong>压缩：</strong>使用 <code>BoLuo.compressToBlob()</code> 获取压缩后的 Blob</li>
+                <li><strong>创建URL：</strong>使用 <code>URL.createObjectURL(blob)</code> 创建临时URL</li>
+                <li><strong>使用URL：</strong>将URL用于图片显示、下载链接或其他用途</li>
+                <li><strong>清理资源：</strong>使用完后调用 <code>URL.revokeObjectURL(url)</code> 释放内存</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // 模拟 BoLuo 库的简化版本（用于演示）
+        const BoLuo = {
+            async compressToBlob(file, options = {}) {
+                // 这里是一个简化的模拟实现
+                // 实际使用时，请使用真正的 BoLuo 库
+                
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        // 简单的尺寸压缩
+                        const scale = Math.min(1, 800 / Math.max(img.width, img.height));
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/jpeg', (options.quality || 80) / 100);
+                    };
+                    
+                    img.src = URL.createObjectURL(file);
+                });
+            }
+        };
+
+        // 文件处理逻辑
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>⏳ 正在压缩图片...</p>';
+
+            try {
+                // 🎯 步骤1: 压缩图片获取 Blob
+                const compressedBlob = await BoLuo.compressToBlob(file, { quality: 80 });
+                
+                // 🎯 步骤2: 创建 Blob URLs
+                const originalUrl = URL.createObjectURL(file);
+                const compressedUrl = URL.createObjectURL(compressedBlob);
+                
+                // 🎯 步骤3: 使用 Blob URLs
+                results.innerHTML = `
+                    <div class="image-container">
+                        <div class="image-box">
+                            <h3>📷 原图</h3>
+                            <img src="${originalUrl}" alt="原图">
+                            <div class="info">
+                                <div>文件名: ${file.name}</div>
+                                <div>大小: ${formatFileSize(file.size)}</div>
+                                <div>类型: ${file.type}</div>
+                            </div>
+                        </div>
+                        <div class="image-box">
+                            <h3>🎯 压缩后</h3>
+                            <img src="${compressedUrl}" alt="压缩后">
+                            <div class="info">
+                                <div>大小: ${formatFileSize(compressedBlob.size)}</div>
+                                <div>压缩比: ${((file.size - compressedBlob.size) / file.size * 100).toFixed(1)}%</div>
+                                <div>类型: ${compressedBlob.type}</div>
+                                <div><strong>Blob URL:</strong> ${compressedUrl.substring(0, 50)}...</div>
+                            </div>
+                            <a href="${compressedUrl}" 
+                               download="compressed_${file.name}" 
+                               class="download-btn">
+                                💾 下载压缩图片
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="code-example">
+                        <h3>🔍 本次操作的代码：</h3>
+                        <pre><code>// 压缩获取 Blob
+const compressedBlob = await BoLuo.compressToBlob(file, { quality: 80 });
+
+// 创建 Blob URL
+const blobUrl = URL.createObjectURL(compressedBlob);
+// 结果: ${compressedUrl}
+
+// 用于图片显示
+img.src = blobUrl;
+
+// 用于文件下载
+link.href = blobUrl;
+link.download = 'compressed_${file.name}';
+
+// 用于上传
+const formData = new FormData();
+formData.append('image', compressedBlob, 'compressed_${file.name}');</code></pre>
+                    </div>
+                `;
+                
+                // 🎯 步骤4: 演示清理资源（延迟清理）
+                setTimeout(() => {
+                    URL.revokeObjectURL(originalUrl);
+                    URL.revokeObjectURL(compressedUrl);
+                    console.log('🧹 Blob URLs 已清理');
+                }, 300000); // 5分钟后清理
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">❌ 压缩失败: ${error.message}</p>`;
+            }
+        });
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        console.log('🎉 Blob URL 示例页面已加载');
+        console.log('💡 选择图片文件来体验 Blob URL 的完整使用流程');
+    </script>
+</body>
+</html>
