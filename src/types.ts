@@ -2,7 +2,7 @@
  * 压缩配置选项
  */
 export interface CompressionOptions {
-  /** 压缩质量 (0-100) */
+  /** 压缩质量 (0-1) */
   quality?: number;
   /** 最小压缩阈值，单位KB，小于此值不压缩 */
   ignoreBy?: number;

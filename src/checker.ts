@@ -7,7 +7,7 @@ export class Checker {
   private static instance: Checker;
   
   private readonly JPEG_SIGNATURE = new Uint8Array([0xFF, 0xD8, 0xFF]);
-  private readonly JPG_EXT = '.jpg';
+
 
   public static getInstance(): Checker {
     if (!Checker.instance) {

@@ -1,6 +1,6 @@
 {
   "name": "boluo-image",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "description": "A pure frontend image compression library for browsers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

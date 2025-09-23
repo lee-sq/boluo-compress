@@ -44,7 +44,7 @@ export class BrowserEngine {
    * 压缩图片
    */
   async compress(options: CompressionOptions): Promise<Buffer> {
-    const { quality = 80, maxWidth, maxHeight } = options;
+    const { quality = 0.8, maxWidth, maxHeight } = options;
 
     return new Promise((resolve, reject) => {
       const blob = new Blob([new Uint8Array(this.srcBuffer)]);
@@ -88,7 +88,7 @@ export class BrowserEngine {
               resolve(buffer);
             }).catch(reject);
 
-          }, this.getOutputMimeType(), quality / 100);
+          }, this.getOutputMimeType(), quality);
 
         } catch (error) {
           URL.revokeObjectURL(url);

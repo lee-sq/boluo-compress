@@ -1,9 +1,10 @@
 import { BrowserEngine } from './browser-engine';
 import { Checker } from './checker';
-import { CompressionOptions, CompressionResult } from './types';
+import { CompressionOptions } from './types';
 
 /**
  * BoLuo 浏览器版本 - 纯前端图片压缩库
+ * 提供简单易用的静态方法API
  */
 export class BoLuoBrowser {
   private engine: BrowserEngine;
@@ -21,7 +22,7 @@ export class BoLuoBrowser {
    */
   async compress(options: CompressionOptions = {}): Promise<Buffer> {
     const defaultOptions: CompressionOptions = {
-      quality: 80,
+      quality: 0.8,
       ignoreBy: 10,
       focusAlpha: false,
       ...options
@@ -43,7 +44,7 @@ export class BoLuoBrowser {
    */
   async compressToBlob(options: CompressionOptions = {}): Promise<Blob> {
     const buffer = await this.compress(options);
-    return new Blob([buffer], { type: 'image/jpeg' });
+    return new Blob([new Uint8Array(buffer)], { type: 'image/jpeg' });
   }
 
   /**
@@ -54,50 +55,81 @@ export class BoLuoBrowser {
   }
 
   /**
-   * 检查是否为JPG格式
+   * 检查是否为 JPG 格式
    */
   isJPG(): boolean {
     return this.checker.isJPG(this.srcBuffer);
   }
 
   /**
-   * 获取图片方向
+   * 获取图片方向信息
    */
   getOrientation(): number {
     return this.checker.getOrientation(this.srcBuffer);
   }
 
+  // ==================== 静态方法 API ====================
+
   /**
-   * 静态方法：从 File 对象创建 BoLuo 实例
+   * 直接压缩 File 对象
+   * @param file 图片文件
+   * @param quality 压缩质量 (0-1)，默认 0.8
+   * @returns 压缩后的 Blob
+   */
+  static async compress(file: File | Blob, quality: number = 0.8): Promise<Blob> {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const compressor = new BoLuoBrowser(buffer);
+    return compressor.compressToBlob({ quality });
+  }
+
+  /**
+   * 压缩图片并返回 Buffer
+   * @param file 图片文件
+   * @param quality 压缩质量 (0-1)，默认 0.8
+   * @returns 压缩后的 Buffer
+   */
+  static async compressToBuffer(file: File | Blob, quality: number = 0.8): Promise<Buffer> {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const compressor = new BoLuoBrowser(buffer);
+    return compressor.compress({ quality });
+  }
+
+  /**
+   * 批量压缩多个文件
+   * @param files 图片文件数组
+   * @param quality 压缩质量 (0-1)，默认 0.8
+   * @returns 压缩后的 Blob 数组
+   */
+  static async compressMultiple(files: (File | Blob)[], quality: number = 0.8): Promise<Blob[]> {
+    const results: Blob[] = [];
+    for (const file of files) {
+      const compressed = await BoLuoBrowser.compress(file, quality);
+      results.push(compressed);
+    }
+    return results;
+  }
+
+  /**
+   * 从 File 创建实例（保留原有API兼容性）
    */
   static async fromFile(file: File): Promise<BoLuoBrowser> {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(await file.arrayBuffer());
     return new BoLuoBrowser(buffer);
   }
 
   /**
-   * 静态方法：从 Blob 对象创建 BoLuo 实例
+   * 从 Blob 创建实例（保留原有API兼容性）
    */
   static async fromBlob(blob: Blob): Promise<BoLuoBrowser> {
-    const arrayBuffer = await blob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(await blob.arrayBuffer());
     return new BoLuoBrowser(buffer);
   }
 
   /**
-   * 静态方法：从 Blob URL 创建 BoLuo 实例
+   * 从 Blob URL 创建实例（保留原有API兼容性）
    */
   static async fromBlobUrl(blobUrl: string): Promise<BoLuoBrowser> {
-    if (!blobUrl.startsWith('blob:')) {
-      throw new Error('Invalid blob URL');
-    }
-
     const response = await fetch(blobUrl);
-    if (!response.ok) {
-      throw new Error('Failed to fetch blob data');
-    }
-
     const blob = await response.blob();
     return BoLuoBrowser.fromBlob(blob);
   }
