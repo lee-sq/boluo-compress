@@ -1,144 +1,215 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+/**
+ * 图像处理引擎
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Engine = void 0;
-const sharp_1 = __importDefault(require("sharp"));
-const checker_1 = require("./checker");
-/**
- * 前端图片压缩引擎，专为浏览器环境设计
- * 只处理Buffer/Blob，不涉及文件系统操作
- */
 class Engine {
-    constructor(srcBuffer, focusAlpha = false) {
-        this.srcWidth = 0;
-        this.srcHeight = 0;
-        this.srcBuffer = srcBuffer;
-        this.focusAlpha = focusAlpha;
-        this.checker = checker_1.Checker.getInstance();
+    constructor(buffer) {
+        this.srcBuffer = buffer;
     }
     /**
-     * 初始化图片信息
+     * 获取图片信息
      */
-    async initImageInfo() {
-        const metadata = await (0, sharp_1.default)(this.srcBuffer).metadata();
-        this.srcWidth = metadata.width || 0;
-        this.srcHeight = metadata.height || 0;
+    async getImageInfo() {
+        return new Promise((resolve, reject) => {
+            const blob = new Blob([new Uint8Array(this.srcBuffer)]);
+            const url = URL.createObjectURL(blob);
+            const img = new window.Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                resolve({
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
+                    format: this.getFormatFromBuffer(),
+                    size: this.srcBuffer.length
+                });
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Failed to load image'));
+            };
+            img.src = url;
+        });
     }
     /**
-     * 计算压缩采样率
-     * 这是BoLuo算法的核心部分，参考微信朋友圈压缩策略
+     * 压缩图片
      */
-    computeSize() {
-        // 确保宽高为偶数
-        this.srcWidth = this.srcWidth % 2 === 1 ? this.srcWidth + 1 : this.srcWidth;
-        this.srcHeight = this.srcHeight % 2 === 1 ? this.srcHeight + 1 : this.srcHeight;
-        const longSide = Math.max(this.srcWidth, this.srcHeight);
-        const shortSide = Math.min(this.srcWidth, this.srcHeight);
-        const scale = shortSide / longSide;
-        if (scale <= 1 && scale > 0.5625) {
-            if (longSide < 1664) {
-                return 1;
-            }
-            else if (longSide < 4990) {
-                return 2;
-            }
-            else if (longSide > 4990 && longSide < 10240) {
-                return 4;
-            }
-            else {
-                return Math.max(1, longSide / 1280);
-            }
-        }
-        else if (scale <= 0.5625 && scale > 0.5) {
-            return Math.max(1, longSide / 1280);
-        }
-        else {
-            return Math.ceil(longSide / (1280.0 / scale));
-        }
-    }
-    /**
-     * 计算目标尺寸
-     */
-    computeTargetSize() {
-        const sampleSize = this.computeSize();
-        return {
-            width: Math.floor(this.srcWidth / sampleSize),
-            height: Math.floor(this.srcHeight / sampleSize)
-        };
-    }
-    /**
-     * 旋转图片
-     */
-    async rotateImage(imageBuffer, angle) {
-        return (0, sharp_1.default)(imageBuffer).rotate(angle).toBuffer();
-    }
-    /**
-     * 压缩图片并返回Buffer
-     */
-    async compress() {
-        try {
-            await this.initImageInfo();
-            const targetSize = this.computeTargetSize();
-            let processedBuffer = this.srcBuffer;
-            // 检查是否需要旋转（基于EXIF信息）
-            if (this.checker.isJPG(this.srcBuffer)) {
-                const orientation = this.checker.getOrientation(this.srcBuffer);
-                if (orientation !== 0) {
-                    processedBuffer = await this.rotateImage(this.srcBuffer, orientation);
+    async compress(options) {
+        const { quality = 0.8, maxWidth, maxHeight } = options;
+        return new Promise((resolve, reject) => {
+            const blob = new Blob([new Uint8Array(this.srcBuffer)]);
+            const url = URL.createObjectURL(blob);
+            const img = new window.Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Cannot get canvas context');
+                    }
+                    // 计算新尺寸
+                    let { width, height } = this.calculateNewSize(img.naturalWidth, img.naturalHeight, maxWidth, maxHeight);
+                    canvas.width = width;
+                    canvas.height = height;
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0, width, height);
+                    // 转换为 Blob
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Failed to compress image'));
+                            return;
+                        }
+                        // 转换为 Buffer
+                        blob.arrayBuffer().then((arrayBuffer) => {
+                            const buffer = Buffer.from(arrayBuffer);
+                            URL.revokeObjectURL(url);
+                            resolve(buffer);
+                        }).catch(reject);
+                    }, this.getOutputMimeType(), quality);
                 }
-            }
-            // 检测原始文件格式
-            const originalExt = await this.checker.getExtSuffix(this.srcBuffer);
-            // 使用Sharp进行压缩
-            const sharpInstance = (0, sharp_1.default)(processedBuffer)
-                .resize(targetSize.width, targetSize.height, {
-                fit: 'inside',
-                withoutEnlargement: true
-            });
-            // 根据原始格式和透明通道需求选择输出格式
-            if (this.focusAlpha || originalExt === '.png' || originalExt === '.webp') {
-                // 保留透明通道或原始为PNG/WebP格式
-                if (originalExt === '.webp') {
-                    return await sharpInstance
-                        .webp({ quality: 60 })
-                        .toBuffer();
+                catch (error) {
+                    URL.revokeObjectURL(url);
+                    reject(error);
                 }
-                else {
-                    return await sharpInstance
-                        .png({ quality: 60 })
-                        .toBuffer();
-                }
-            }
-            else {
-                // 其他格式转为JPEG
-                return await sharpInstance
-                    .jpeg({ quality: 60 })
-                    .toBuffer();
-            }
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Failed to load image'));
+            };
+            img.src = url;
+        });
+    }
+    /**
+     * 旋转图片（基于EXIF）
+     */
+    async rotateByExif(orientation) {
+        if (orientation <= 1) {
+            return this.srcBuffer; // 不需要旋转
         }
-        catch (error) {
-            throw new Error(`Compression failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return new Promise((resolve, reject) => {
+            const blob = new Blob([new Uint8Array(this.srcBuffer)]);
+            const url = URL.createObjectURL(blob);
+            const img = new window.Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Cannot get canvas context');
+                    }
+                    const { width, height } = img;
+                    // 根据orientation设置canvas尺寸和变换
+                    if (orientation >= 5 && orientation <= 8) {
+                        canvas.width = height;
+                        canvas.height = width;
+                    }
+                    else {
+                        canvas.width = width;
+                        canvas.height = height;
+                    }
+                    // 应用变换
+                    this.applyOrientation(ctx, orientation, width, height);
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0);
+                    // 转换为 Buffer
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Failed to rotate image'));
+                            return;
+                        }
+                        blob.arrayBuffer().then((arrayBuffer) => {
+                            const buffer = Buffer.from(arrayBuffer);
+                            URL.revokeObjectURL(url);
+                            resolve(buffer);
+                        }).catch(reject);
+                    }, this.getOutputMimeType());
+                }
+                catch (error) {
+                    URL.revokeObjectURL(url);
+                    reject(error);
+                }
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error('Failed to load image'));
+            };
+            img.src = url;
+        });
+    }
+    /**
+     * 计算新尺寸
+     */
+    calculateNewSize(originalWidth, originalHeight, maxWidth, maxHeight) {
+        let width = originalWidth;
+        let height = originalHeight;
+        if (maxWidth && width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+        }
+        if (maxHeight && height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+        }
+        return { width: Math.round(width), height: Math.round(height) };
+    }
+    /**
+     * 应用EXIF方向变换
+     */
+    applyOrientation(ctx, orientation, width, height) {
+        switch (orientation) {
+            case 2:
+                ctx.transform(-1, 0, 0, 1, width, 0);
+                break;
+            case 3:
+                ctx.transform(-1, 0, 0, -1, width, height);
+                break;
+            case 4:
+                ctx.transform(1, 0, 0, -1, 0, height);
+                break;
+            case 5:
+                ctx.transform(0, 1, 1, 0, 0, 0);
+                break;
+            case 6:
+                ctx.transform(0, 1, -1, 0, height, 0);
+                break;
+            case 7:
+                ctx.transform(0, -1, -1, 0, height, width);
+                break;
+            case 8:
+                ctx.transform(0, -1, 1, 0, 0, width);
+                break;
         }
     }
     /**
-     * 获取压缩后的图片信息
+     * 从Buffer获取图片格式
      */
-    async getImageInfo(buffer) {
-        const metadata = await (0, sharp_1.default)(buffer).metadata();
-        return {
-            width: metadata.width || 0,
-            height: metadata.height || 0,
-            format: metadata.format || 'unknown',
-            size: buffer.length
-        };
+    getFormatFromBuffer() {
+        const header = this.srcBuffer.slice(0, 12);
+        if (header[0] === 0xFF && header[1] === 0xD8) {
+            return 'jpeg';
+        }
+        else if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
+            return 'png';
+        }
+        else if (header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46) {
+            return 'webp';
+        }
+        return 'jpeg'; // 默认
     }
     /**
-     * 获取原始图片信息
+     * 获取输出MIME类型
      */
-    async getOriginalInfo() {
-        return this.getImageInfo(this.srcBuffer);
+    getOutputMimeType() {
+        const format = this.getFormatFromBuffer();
+        switch (format) {
+            case 'png':
+                return 'image/png';
+            case 'webp':
+                return 'image/webp';
+            default:
+                return 'image/jpeg';
+        }
     }
 }
 exports.Engine = Engine;

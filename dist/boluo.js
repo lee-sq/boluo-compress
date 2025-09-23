@@ -1,276 +1,121 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BoLuoBuilder = exports.BoLuo = void 0;
+exports.Boluo = void 0;
 const engine_1 = require("./engine");
 const checker_1 = require("./checker");
 /**
- * 前端图片压缩库 - BoLuo
- * 专为浏览器环境设计，只处理Blob/Buffer对象
+ * BoLuo 浏览器版本 - 纯前端图片压缩库
+ * 提供简单易用的静态方法API
  */
-class BoLuo {
-    /**
-     * 压缩单个Blob/Buffer，返回Buffer
-     * @param input - 输入的Blob或Buffer
-     * @param options - 压缩选项
-     * @returns 压缩后的Buffer
-     */
-    static async compress(input, options = {}) {
-        const mergedOptions = { ...BoLuo.defaultOptions, ...options };
-        // 将Blob转换为Buffer
-        let buffer;
-        if (input instanceof Blob) {
-            const arrayBuffer = await input.arrayBuffer();
-            buffer = Buffer.from(arrayBuffer);
-        }
-        else {
-            buffer = input;
-        }
-        // 检查是否为支持的图片格式
-        const checker = checker_1.Checker.getInstance();
-        try {
-            const ext = await checker.getExtSuffix(buffer);
-            if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext.toLowerCase())) {
-                throw new Error('Unsupported image format. Only JPG, PNG, and WebP are supported.');
-            }
-        }
-        catch (error) {
-            throw new Error('Invalid image data');
-        }
-        // 检查文件大小是否需要压缩
-        if (buffer.length <= mergedOptions.ignoreBy * 1024) { // 转换为字节
-            return buffer; // 返回原始buffer
-        }
-        // 使用Engine进行压缩
-        const engine = new engine_1.Engine(buffer, mergedOptions.focusAlpha || false);
-        return await engine.compress();
+class Boluo {
+    constructor(srcBuffer) {
+        this.srcBuffer = srcBuffer;
+        this.engine = new engine_1.Engine(srcBuffer);
+        this.checker = checker_1.Checker.getInstance();
     }
     /**
-     * 压缩单个Blob/Buffer，返回Blob（推荐用于前端）
-     * @param input - 输入的Blob或Buffer
-     * @param options - 压缩选项
-     * @returns 压缩后的Blob
+     * 压缩图片到指定质量
      */
-    static async compressToBlob(input, options = {}) {
-        const compressedBuffer = await BoLuo.compress(input, options);
-        // 确定MIME类型
-        const checker = checker_1.Checker.getInstance();
-        let mimeType = 'image/jpeg'; // 默认JPEG
-        try {
-            const ext = await checker.getExtSuffix(compressedBuffer);
-            switch (ext.toLowerCase()) {
-                case '.png':
-                    mimeType = 'image/png';
-                    break;
-                case '.webp':
-                    mimeType = 'image/webp';
-                    break;
-                case '.jpg':
-                case '.jpeg':
-                default:
-                    mimeType = 'image/jpeg';
-                    break;
-            }
+    async compress(options = {}) {
+        const defaultOptions = {
+            quality: 0.8,
+            ignoreBy: 10,
+            focusAlpha: false,
+            ...options
+        };
+        // 检查是否需要压缩
+        const info = await this.engine.getImageInfo();
+        const sizeInKB = info.size / 1024;
+        if (defaultOptions.ignoreBy && sizeInKB < defaultOptions.ignoreBy) {
+            return this.srcBuffer;
         }
-        catch (error) {
-            // 如果检测失败，使用默认JPEG
-            mimeType = 'image/jpeg';
-        }
-        return new Blob([compressedBuffer], { type: mimeType });
+        return this.engine.compress(defaultOptions);
     }
     /**
-     * 压缩多个Blob/Buffer
-     * @param inputs - 输入的Blob或Buffer数组
-     * @param options - 压缩选项
-     * @returns 压缩后的Buffer数组
+     * 压缩图片并返回 Blob
      */
-    static async compressMultiple(inputs, options = {}) {
+    async compressToBlob(options = {}) {
+        const buffer = await this.compress(options);
+        return new Blob([new Uint8Array(buffer)], { type: 'image/jpeg' });
+    }
+    /**
+     * 获取图片信息
+     */
+    async getImageInfo() {
+        return this.engine.getImageInfo();
+    }
+    /**
+     * 检查是否为 JPG 格式
+     */
+    isJPG() {
+        return this.checker.isJPG(this.srcBuffer);
+    }
+    /**
+     * 获取图片方向信息
+     */
+    getOrientation() {
+        return this.checker.getOrientation(this.srcBuffer);
+    }
+    // ==================== 静态方法 API ====================
+    /**
+     * 直接压缩 File 对象
+     * @param file 图片文件
+     * @param quality 压缩质量 (0-1)，默认 0.8
+     * @returns 压缩后的 Blob
+     */
+    static async compress(file, quality = 0.8) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const compressor = new Boluo(buffer);
+        return compressor.compressToBlob({ quality });
+    }
+    /**
+     * 压缩图片并返回 Buffer
+     * @param file 图片文件
+     * @param quality 压缩质量 (0-1)，默认 0.8
+     * @returns 压缩后的 Buffer
+     */
+    static async compressToBuffer(file, quality = 0.8) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const compressor = new Boluo(buffer);
+        return compressor.compress({ quality });
+    }
+    /**
+     * 批量压缩多个文件
+     * @param files 图片文件数组
+     * @param quality 压缩质量 (0-1)，默认 0.8
+     * @returns 压缩后的 Blob 数组
+     */
+    static async compressMultiple(files, quality = 0.8) {
         const results = [];
-        for (const input of inputs) {
-            try {
-                const compressed = await BoLuo.compress(input, options);
-                results.push(compressed);
-            }
-            catch (error) {
-                console.warn('Failed to compress one image:', error);
-                // 压缩失败时，返回原始数据
-                if (input instanceof Blob) {
-                    const arrayBuffer = await input.arrayBuffer();
-                    results.push(Buffer.from(arrayBuffer));
-                }
-                else {
-                    results.push(input);
-                }
-            }
+        for (const file of files) {
+            const compressed = await Boluo.compress(file, quality);
+            results.push(compressed);
         }
         return results;
     }
     /**
-     * 获取图片信息
-     * @param input - 输入的Blob或Buffer
-     * @returns 图片信息
+     * 从 File 创建实例（保留原有API兼容性）
      */
-    static async getImageInfo(input) {
-        let buffer;
-        if (input instanceof Blob) {
-            const arrayBuffer = await input.arrayBuffer();
-            buffer = Buffer.from(arrayBuffer);
-        }
-        else {
-            buffer = input;
-        }
-        const engine = new engine_1.Engine(buffer);
-        return await engine.getOriginalInfo();
+    static async fromFile(file) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        return new Boluo(buffer);
     }
     /**
-     * 检查是否为支持的图片格式
-     * @param input - 输入的Blob或Buffer
-     * @returns 是否为支持的格式
+     * 从 Blob 创建实例（保留原有API兼容性）
      */
-    static async isValidImage(input) {
-        try {
-            let buffer;
-            if (input instanceof Blob) {
-                const arrayBuffer = await input.arrayBuffer();
-                buffer = Buffer.from(arrayBuffer);
-            }
-            else {
-                buffer = input;
-            }
-            const checker = checker_1.Checker.getInstance();
-            const ext = await checker.getExtSuffix(buffer);
-            return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext.toLowerCase());
-        }
-        catch {
-            return false;
-        }
+    static async fromBlob(blob) {
+        const buffer = Buffer.from(await blob.arrayBuffer());
+        return new Boluo(buffer);
     }
     /**
-     * 创建Builder实例
+     * 从 Blob URL 创建实例（保留原有API兼容性）
      */
-    static create() {
-        return new BoLuoBuilder();
+    static async fromBlobUrl(blobUrl) {
+        const response = await fetch(blobUrl);
+        const blob = await response.blob();
+        return Boluo.fromBlob(blob);
     }
 }
-exports.BoLuo = BoLuo;
-BoLuo.defaultOptions = {
-    quality: 60,
-    ignoreBy: 100, // 100KB以下不压缩
-    focusAlpha: false
-};
-/**
- * BoLuo Builder类，提供链式调用API
- */
-class BoLuoBuilder {
-    constructor() {
-        this.inputs = [];
-        this.options = { ...BoLuo['defaultOptions'] };
-    }
-    /**
-     * 加载输入数据
-     */
-    load(input) {
-        if (Array.isArray(input)) {
-            this.inputs = [...input];
-        }
-        else {
-            this.inputs = [input];
-        }
-        return this;
-    }
-    /**
-     * 设置压缩质量
-     */
-    quality(quality) {
-        this.options.quality = quality;
-        return this;
-    }
-    /**
-     * 设置最小压缩阈值（KB）
-     */
-    ignoreBy(sizeKB) {
-        this.options.ignoreBy = sizeKB;
-        return this;
-    }
-    /**
-     * 设置是否保留透明通道
-     */
-    setFocusAlpha(focusAlpha) {
-        this.options.focusAlpha = focusAlpha;
-        return this;
-    }
-    /**
-     * 压缩单个输入，返回Buffer（仅支持单个输入）
-     */
-    async compress() {
-        if (this.inputs.length !== 1) {
-            throw new Error('compress() method only supports single input. Use compressAll() for multiple inputs.');
-        }
-        return await BoLuo.compress(this.inputs[0], this.options);
-    }
-    /**
-     * 压缩单个输入，返回Blob（推荐用于前端，仅支持单个输入）
-     */
-    async compressToBlob() {
-        if (this.inputs.length !== 1) {
-            throw new Error('compressToBlob() method only supports single input. Use compressAllToBlobs() for multiple inputs.');
-        }
-        return await BoLuo.compressToBlob(this.inputs[0], this.options);
-    }
-    /**
-     * 压缩所有输入，返回Buffer数组
-     */
-    async compressAll() {
-        if (this.inputs.length === 0) {
-            throw new Error('No inputs loaded. Use load() method first.');
-        }
-        return await BoLuo.compressMultiple(this.inputs, this.options);
-    }
-    /**
-     * 压缩所有输入，返回Blob数组（推荐用于前端）
-     */
-    async compressAllToBlobs() {
-        if (this.inputs.length === 0) {
-            throw new Error('No inputs loaded. Use load() method first.');
-        }
-        const buffers = await BoLuo.compressMultiple(this.inputs, this.options);
-        const blobs = [];
-        for (const buffer of buffers) {
-            // 确定MIME类型
-            const checker = checker_1.Checker.getInstance();
-            let mimeType = 'image/jpeg'; // 默认JPEG
-            try {
-                const ext = await checker.getExtSuffix(buffer);
-                switch (ext.toLowerCase()) {
-                    case '.png':
-                        mimeType = 'image/png';
-                        break;
-                    case '.webp':
-                        mimeType = 'image/webp';
-                        break;
-                    case '.jpg':
-                    case '.jpeg':
-                    default:
-                        mimeType = 'image/jpeg';
-                        break;
-                }
-            }
-            catch (error) {
-                // 如果检测失败，使用默认JPEG
-                mimeType = 'image/jpeg';
-            }
-            blobs.push(new Blob([buffer], { type: mimeType }));
-        }
-        return blobs;
-    }
-    /**
-     * 获取第一个输入的图片信息
-     */
-    async getImageInfo() {
-        if (this.inputs.length === 0) {
-            throw new Error('No inputs loaded. Use load() method first.');
-        }
-        return await BoLuo.getImageInfo(this.inputs[0]);
-    }
-}
-exports.BoLuoBuilder = BoLuoBuilder;
+exports.Boluo = Boluo;
+exports.default = Boluo;
 //# sourceMappingURL=boluo.js.map

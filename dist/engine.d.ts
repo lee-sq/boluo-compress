@@ -1,43 +1,37 @@
-import { ImageInfo } from './types';
 /**
- * 前端图片压缩引擎，专为浏览器环境设计
- * 只处理Buffer/Blob，不涉及文件系统操作
+ * 图像处理引擎
  */
+import { CompressionOptions, ImageInfo } from './types';
 export declare class Engine {
     private srcBuffer;
-    private srcWidth;
-    private srcHeight;
-    private focusAlpha;
-    private checker;
-    constructor(srcBuffer: Buffer, focusAlpha?: boolean);
+    constructor(buffer: Buffer);
     /**
-     * 初始化图片信息
+     * 获取图片信息
      */
-    private initImageInfo;
+    getImageInfo(): Promise<ImageInfo>;
     /**
-     * 计算压缩采样率
-     * 这是BoLuo算法的核心部分，参考微信朋友圈压缩策略
+     * 压缩图片
      */
-    private computeSize;
+    compress(options: CompressionOptions): Promise<Buffer>;
     /**
-     * 计算目标尺寸
+     * 旋转图片（基于EXIF）
      */
-    private computeTargetSize;
+    rotateByExif(orientation: number): Promise<Buffer>;
     /**
-     * 旋转图片
+     * 计算新尺寸
      */
-    private rotateImage;
+    private calculateNewSize;
     /**
-     * 压缩图片并返回Buffer
+     * 应用EXIF方向变换
      */
-    compress(): Promise<Buffer>;
+    private applyOrientation;
     /**
-     * 获取压缩后的图片信息
+     * 从Buffer获取图片格式
      */
-    getImageInfo(buffer: Buffer): Promise<ImageInfo>;
+    private getFormatFromBuffer;
     /**
-     * 获取原始图片信息
+     * 获取输出MIME类型
      */
-    getOriginalInfo(): Promise<ImageInfo>;
+    private getOutputMimeType;
 }
 //# sourceMappingURL=engine.d.ts.map
